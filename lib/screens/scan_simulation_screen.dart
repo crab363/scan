@@ -58,12 +58,17 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
   Widget build(BuildContext context) {
     final modality = _currentModalityInfo;
     final color = modality.accentColor;
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 20,
+            vertical: isMobile ? 10 : 16,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -85,7 +90,7 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
                   label: Text('RESET LAB', style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 9)),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
 
               // Modality Selector Bar
               ModalitySelector(
@@ -98,11 +103,11 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
                   });
                 },
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
 
-              // 5-Step Visual Stepper Bar
+              // 5-Step Visual Stepper Bar (Horizontally scrollable for mobile)
               _buildStepperBar(color),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               // Active Step Body View
               Expanded(
@@ -120,57 +125,64 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
   Widget _buildStepperBar(Color color) {
     final steps = [
       {'step': ScanStep.patient, 'label': '1. PATIENT'},
-      {'step': ScanStep.preparation, 'label': '2. PREPARATION'},
-      {'step': ScanStep.positioning, 'label': '3. POSITIONING'},
+      {'step': ScanStep.preparation, 'label': '2. PREP'},
+      {'step': ScanStep.positioning, 'label': '3. POSITION'},
       {'step': ScanStep.scan, 'label': '4. SCAN'},
       {'step': ScanStep.image, 'label': '5. IMAGE'},
     ];
 
     return GlassPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       borderRadius: 12,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: steps.map((s) {
-          final step = s['step'] as ScanStep;
-          final label = s['label'] as String;
-          final isCurrent = _currentStep == step;
-          final isPast = step.index < _currentStep.index;
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: steps.map((s) {
+            final step = s['step'] as ScanStep;
+            final label = s['label'] as String;
+            final isCurrent = _currentStep == step;
+            final isPast = step.index < _currentStep.index;
 
-          return InkWell(
-            onTap: () => _goToStep(step),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isCurrent ? color.withOpacity(0.2) : (isPast ? AppColors.surfaceHighlight : Colors.transparent),
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: InkWell(
+                onTap: () => _goToStep(step),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isCurrent ? color : (isPast ? color.withOpacity(0.4) : Colors.transparent),
-                  width: isCurrent ? 1.5 : 1.0,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isPast ? Icons.check_circle_rounded : (isCurrent ? Icons.radio_button_checked_rounded : Icons.circle_outlined),
-                    size: 14,
-                    color: isCurrent ? color : (isPast ? AppColors.emerald : AppColors.textMuted),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: AppTypography.hudLabel.copyWith(
-                      color: isCurrent ? Colors.white : (isPast ? AppColors.textPrimary : AppColors.textMuted),
-                      fontSize: 9,
-                      fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w500,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isCurrent ? color.withOpacity(0.2) : (isPast ? AppColors.surfaceHighlight : Colors.transparent),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isCurrent ? color : (isPast ? color.withOpacity(0.4) : Colors.transparent),
+                      width: isCurrent ? 1.5 : 1.0,
                     ),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPast ? Icons.check_circle_rounded : (isCurrent ? Icons.radio_button_checked_rounded : Icons.circle_outlined),
+                        size: 13,
+                        color: isCurrent ? color : (isPast ? AppColors.emerald : AppColors.textMuted),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        label,
+                        style: AppTypography.hudLabel.copyWith(
+                          color: isCurrent ? Colors.white : (isPast ? AppColors.textPrimary : AppColors.textMuted),
+                          fontSize: 8.5,
+                          fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

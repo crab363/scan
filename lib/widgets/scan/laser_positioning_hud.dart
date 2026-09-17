@@ -62,7 +62,7 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,22 +70,29 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LASER OPTICAL ISOCENTER ALIGNMENT',
-                    style: AppTypography.hudLabel.copyWith(color: color),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Patient Positioning & Table Coordinates',
-                    style: AppTypography.titleMedium.copyWith(fontSize: 18),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LASER OPTICAL ISOCENTER ALIGNMENT',
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Patient Positioning & Table Coordinates',
+                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: _isLaserAligned ? AppColors.emerald.withOpacity(0.2) : AppColors.amber.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(6),
@@ -96,15 +103,15 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                   children: [
                     Icon(
                       _isLaserAligned ? Icons.check_circle_rounded : Icons.radar_rounded,
-                      size: 14,
+                      size: 13,
                       color: _isLaserAligned ? AppColors.emerald : AppColors.amber,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Text(
-                      _isLaserAligned ? 'ISOCENTER LOCKED' : 'ALIGN TARGET',
+                      _isLaserAligned ? 'LOCKED' : 'ALIGN',
                       style: AppTypography.hudLabel.copyWith(
                         color: _isLaserAligned ? AppColors.emerald : AppColors.amber,
-                        fontSize: 9,
+                        fontSize: 8.5,
                       ),
                     ),
                   ],
@@ -112,18 +119,18 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Interactive Crosshair Alignment Canvas
           SizedBox(
-            height: 220,
+            height: 200,
             width: double.infinity,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 // Gantry Bore & Calibration Grid
                 CustomPaint(
-                  size: const Size(double.infinity, 220),
+                  size: const Size(double.infinity, 200),
                   painter: _GantryTargetPainter(
                     color: color,
                     pulse: _crosshairPulse.value,
@@ -138,7 +145,7 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                       _crosshairOffset += details.delta;
                       _crosshairOffset = Offset(
                         _crosshairOffset.dx.clamp(-120.0, 120.0),
-                        _crosshairOffset.dy.clamp(-80.0, 80.0),
+                        _crosshairOffset.dy.clamp(-75.0, 75.0),
                       );
                     });
                     _checkAlignment();
@@ -148,8 +155,8 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                     child: MouseRegion(
                       cursor: SystemMouseCursors.move,
                       child: Container(
-                        width: 60,
-                        height: 60,
+                        width: 54,
+                        height: 54,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: color.withOpacity(0.1),
@@ -160,7 +167,7 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                           boxShadow: [
                             BoxShadow(
                               color: (_isLaserAligned ? AppColors.emerald : color).withOpacity(0.6),
-                              blurRadius: 15,
+                              blurRadius: 14,
                               spreadRadius: 2,
                             ),
                           ],
@@ -168,7 +175,7 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                         child: Icon(
                           Icons.filter_center_focus_rounded,
                           color: _isLaserAligned ? AppColors.emerald : color,
-                          size: 28,
+                          size: 26,
                         ),
                       ),
                     ),
@@ -177,18 +184,18 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
 
                 // Instruction Overlay Badge
                 Positioned(
-                  bottom: 8,
+                  bottom: 6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.background.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.background.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppColors.cardGlassBorder),
                     ),
                     child: Text(
                       'Drag crosshair to center optical isocenter (0, 0)',
                       style: AppTypography.hudLabel.copyWith(
-                        fontSize: 9,
+                        fontSize: 8.5,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -197,7 +204,7 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Telemetry Sliders: Table Elevation & Bore Advancement
           Row(
@@ -209,16 +216,16 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('TABLE ELEVATION (Z-AXIS)', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
-                        Text('${_tableHeightMm.toStringAsFixed(1)} mm', style: AppTypography.hudValue.copyWith(fontSize: 12, color: color)),
+                        Text('TABLE (Z)', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+                        Text('${_tableHeightMm.toStringAsFixed(1)}mm', style: AppTypography.hudValue.copyWith(fontSize: 10.5, color: color)),
                       ],
                     ),
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         activeTrackColor: color,
                         thumbColor: color,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                        trackHeight: 2,
                       ),
                       child: Slider(
                         value: _tableHeightMm,
@@ -232,7 +239,7 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                   ],
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,16 +247,16 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('BORE ADVANCEMENT (Y-AXIS)', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
-                        Text('${_boreAdvancementMm.toStringAsFixed(1)} mm', style: AppTypography.hudValue.copyWith(fontSize: 12, color: color)),
+                        Text('BORE (Y)', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+                        Text('${_boreAdvancementMm.toStringAsFixed(1)}mm', style: AppTypography.hudValue.copyWith(fontSize: 10.5, color: color)),
                       ],
                     ),
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         activeTrackColor: color,
                         thumbColor: color,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                        trackHeight: 2,
                       ),
                       child: Slider(
                         value: _boreAdvancementMm,
@@ -265,13 +272,13 @@ class _LaserPositioningHUDState extends State<LaserPositioningHUD> with SingleTi
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Lock Position Button
           Align(
             alignment: Alignment.centerRight,
             child: GlowingButton(
-              text: _isLaserAligned ? 'LOCK ISOCENTER & START ACQUISITION' : 'AUTO-LOCK ISOCENTER',
+              text: _isLaserAligned ? 'LOCK ISOCENTER & PROCEED' : 'AUTO-LOCK ISOCENTER',
               icon: Icons.lock_outline_rounded,
               primaryColor: _isLaserAligned ? AppColors.emerald : color,
               onPressed: () {
@@ -312,24 +319,24 @@ class _GantryTargetPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    canvas.drawCircle(Offset(cx, cy), 80, ringPaint);
-    canvas.drawCircle(Offset(cx, cy), 50, ringPaint);
-    canvas.drawCircle(Offset(cx, cy), 20, ringPaint..color = (isAligned ? AppColors.emerald : color).withOpacity(0.5));
+    canvas.drawCircle(Offset(cx, cy), 70, ringPaint);
+    canvas.drawCircle(Offset(cx, cy), 45, ringPaint);
+    canvas.drawCircle(Offset(cx, cy), 18, ringPaint..color = (isAligned ? AppColors.emerald : color).withOpacity(0.5));
 
     // Target Crosshair Axis Lines
     final axisPaint = Paint()
       ..color = (isAligned ? AppColors.emerald : color).withOpacity(0.4)
       ..strokeWidth = 1.2;
 
-    canvas.drawLine(Offset(cx - 100, cy), Offset(cx + 100, cy), axisPaint);
-    canvas.drawLine(Offset(cx, cy - 80), Offset(cx, cy + 80), axisPaint);
+    canvas.drawLine(Offset(cx - 90, cy), Offset(cx + 90, cy), axisPaint);
+    canvas.drawLine(Offset(cx, cy - 70), Offset(cx, cy + 70), axisPaint);
 
     // Center Pulse Target Ring
     final centerPulsePaint = Paint()
       ..color = (isAligned ? AppColors.emerald : color).withOpacity(0.3 * (1.0 - pulse))
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
-    canvas.drawCircle(Offset(cx, cy), 20.0 + pulse * 15.0, centerPulsePaint);
+    canvas.drawCircle(Offset(cx, cy), 18.0 + pulse * 12.0, centerPulsePaint);
   }
 
   @override

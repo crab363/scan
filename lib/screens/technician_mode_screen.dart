@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/technician_case.dart';
+import '../models/imaging_modality.dart';
 import '../data/technician_cases_data.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -7,6 +7,7 @@ import '../services/app_state_service.dart';
 import '../services/audio_service.dart';
 import '../widgets/common/hud_header.dart';
 import '../widgets/common/glass_panel.dart';
+import '../widgets/common/glowing_button.dart';
 import '../widgets/technician/workstation_hud.dart';
 import '../widgets/technician/technician_decision_card.dart';
 
@@ -18,67 +19,141 @@ class TechnicianModeScreen extends StatefulWidget {
 }
 
 class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
-  TechnicianCase _activeCase = TechnicianCasesData.cases.first;
+  ModalityType? _modalityFilter;
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateService();
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 650;
 
     return ListenableBuilder(
       listenable: appState,
       builder: (context, _) {
+        final activeCase = appState.activeTechnicianCase;
         final score = appState.technicianScore;
+        final streak = appState.consecutiveCorrectStreak;
         final decisions = appState.technicianDecisions;
-        final selectedChoiceId = decisions[_activeCase.id];
+        final selectedChoiceId = decisions[activeCase.id];
+
+        final filteredCases = _modalityFilter == null
+            ? TechnicianCasesData.cases
+            : TechnicianCasesData.cases.where((c) => c.modality == _modalityFilter).toList();
+
+        final answeredCount = TechnicianCasesData.cases.where((c) => decisions.containsKey(c.id)).length;
 
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 10 : 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header
                   HUDHeader(
                     title: 'TECHNICIAN WORKSTATION SIMULATOR',
-                    subtitle: 'Play the role of a Radiologic Technologist: Quality Assurance & Decision Making',
+                    subtitle: 'Radiologic Technologist Quality Assurance, Artifact Recognition & Crisis Governance',
                     tag: 'RADTECH CONSOLE',
                     accentColor: AppColors.cyan,
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.cyan.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.cyan),
-                      ),
-                      child: Text(
-                        'TOTAL SCORE: $score PTS',
-                        style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 11),
-                      ),
+                    trailing: Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.cyan.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.cyan),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'SCORE: $score PTS',
+                                style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 10.5),
+                              ),
+                              if (streak > 1) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.amber.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '🔥 $streak STREAK',
+                                    style: AppTypography.hudLabel.copyWith(color: AppColors.amber, fontSize: 8.5),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        GlowingButton(
+                          text: isMobile ? 'RANDOM' : 'RANDOM CASE (สุ่มเคส)',
+                          icon: Icons.shuffle_rounded,
+                          primaryColor: AppColors.cyan,
+                          secondaryColor: AppColors.neonTeal,
+                          height: 36,
+                          onPressed: () {
+                            appState.randomizeTechnicianCase(modalityFilter: _modalityFilter);
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
 
-                  // Case Switcher Strip
+                  // Filter Strip & Solved Counter
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildFilterChip('ALL (${TechnicianCasesData.cases.length})', null, AppColors.cyan),
+                              _buildFilterChip('MRI SAFETY & PHYSICS', ModalityType.mri, AppColors.cyan),
+                              _buildFilterChip('CT PROTOCOLS', ModalityType.ct, AppColors.emerald),
+                              _buildFilterChip('DIGITAL X-RAY & C-ARM', ModalityType.xray, AppColors.violet),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$answeredCount / ${TechnicianCasesData.cases.length}',
+                        style: AppTypography.hudLabel.copyWith(fontSize: 10, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Case Switcher Horizontal Strip
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: TechnicianCasesData.cases.map((c) {
-                        final isSelected = c.id == _activeCase.id;
+                      children: filteredCases.map((c) {
+                        final isSelected = c.id == activeCase.id;
                         final hasAnswered = decisions.containsKey(c.id);
 
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
                             avatar: hasAnswered
-                                ? const Icon(Icons.check_circle_rounded, size: 16, color: AppColors.emerald)
+                                ? const Icon(Icons.check_circle_rounded, size: 15, color: AppColors.emerald)
                                 : null,
                             label: Text(
                               '${c.caseCode} • ${c.modality.name.toUpperCase()}',
                               style: AppTypography.hudLabel.copyWith(
                                 color: isSelected ? AppColors.background : AppColors.cyan,
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -88,8 +163,7 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                             side: BorderSide(color: isSelected ? AppColors.cyan : AppColors.cardGlassBorder),
                             onSelected: (selected) {
                               if (selected) {
-                                setState(() => _activeCase = c);
-                                SoundService().playSound(SoundEffect.uiClick);
+                                appState.setActiveTechnicianCase(c);
                               }
                             },
                           ),
@@ -97,7 +171,7 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                       }).toList(),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
                   // Main Workstation & Decision Views
                   Expanded(
@@ -105,18 +179,18 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                       child: Column(
                         children: [
                           WorkstationHUD(
-                            techCase: _activeCase,
+                            techCase: activeCase,
                             currentScore: score,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
                           TechnicianDecisionCard(
-                            techCase: _activeCase,
+                            techCase: activeCase,
                             selectedOptionId: selectedChoiceId,
                             onOptionChosen: (optionId, scoreDelta) {
-                              appState.recordTechnicianDecision(_activeCase.id, optionId, scoreDelta);
+                              appState.recordTechnicianDecision(activeCase.id, optionId, scoreDelta);
                             },
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
 
                           // Competencies Tested Grid
                           GlassPanel(
@@ -125,12 +199,24 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('RADTECH PROFESSIONAL COMPETENCIES TESTED', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'RADTECH PROFESSIONAL COMPETENCIES TESTED',
+                                      style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted),
+                                    ),
+                                    Text(
+                                      '${activeCase.radTechCompetenciesTested.length} OBJECTIVES',
+                                      style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.cyan),
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 8),
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 6,
-                                  children: _activeCase.radTechCompetenciesTested.map((comp) {
+                                  children: activeCase.radTechCompetenciesTested.map((comp) {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
@@ -159,6 +245,34 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFilterChip(String label, ModalityType? modality, Color accentColor) {
+    final isSelected = _modalityFilter == modality;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(
+          label,
+          style: AppTypography.hudLabel.copyWith(
+            color: isSelected ? AppColors.background : accentColor,
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        selected: isSelected,
+        selectedColor: accentColor,
+        backgroundColor: AppColors.surface,
+        side: BorderSide(color: isSelected ? accentColor : AppColors.cardGlassBorder),
+        onSelected: (selected) {
+          if (selected) {
+            setState(() => _modalityFilter = modality);
+            SoundService().playSound(SoundEffect.uiClick);
+          }
+        },
+      ),
     );
   }
 }

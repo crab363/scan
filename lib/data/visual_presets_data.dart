@@ -5,8 +5,8 @@ class VisualPresetsData {
   static const List<VisualEffectSettings> presets = [
     VisualEffectSettings(
       preset: VisualThemePreset.cyberHologram,
-      title: 'CYBER HOLOGRAM',
-      description: 'Luminous cyan & cobalt laser lattice with high-density particle swarm and scanning planes.',
+      title: 'CYBERNETIC MRI HOLOGRAM',
+      description: 'Luminous cyan & cobalt laser lattice with 3D volumetric brain hologram and rotating scanner planes.',
       palette: [
         Color(0xFF00F2FE),
         Color(0xFF4FACFE),
@@ -25,16 +25,16 @@ class VisualPresetsData {
     ),
     VisualEffectSettings(
       preset: VisualThemePreset.matrixNeural,
-      title: 'BIOLUMINESCENT NEURAL',
-      description: 'Emerald synaptic node networks pulsing with electromagnetic discharge and brain wave harmonics.',
+      title: 'BIOLUMINESCENT NEURAL SYNAPSE',
+      description: 'Emerald synaptic node networks pulsing with electromagnetic discharge, action potentials and neural harmonics.',
       palette: [
         Color(0xFF00FFA3),
         Color(0xFF00E599),
         Color(0xFF10B981),
         Color(0xFF064E3B),
       ],
-      particleDensity: 180,
-      scanSpeed: 0.8,
+      particleDensity: 170,
+      scanSpeed: 0.9,
       waveformFrequency: 3.5,
       glowIntensity: 0.9,
       glitchAmount: 0.08,
@@ -45,8 +45,8 @@ class VisualPresetsData {
     ),
     VisualEffectSettings(
       preset: VisualThemePreset.kSpaceGlitch,
-      title: 'K-SPACE GLITCH / STAGE LED',
-      description: 'High-energy RGB chromatic aberration, Fourier raw frequency distortions, and intense strobe pulses.',
+      title: 'K-SPACE GLITCH / CONCERT STROBE',
+      description: 'High-energy RGB chromatic aberration, Fourier raw frequency distortions, and intense EDM stage strobe pulses.',
       palette: [
         Color(0xFFFF007A),
         Color(0xFF00F2FE),
@@ -65,8 +65,8 @@ class VisualPresetsData {
     ),
     VisualEffectSettings(
       preset: VisualThemePreset.quantumParticles,
-      title: 'ULTRAVIOLET RESONANCE',
-      description: 'Deep violet and electric magenta quantum particle field with orbiting harmonic frequency rings.',
+      title: 'ULTRAVIOLET QUANTUM RESONANCE',
+      description: 'Deep violet and electric magenta quantum particle field with orbiting magnetic dipole precession rings.',
       palette: [
         Color(0xFF9D4EDD),
         Color(0xFFC77DFF),
@@ -76,7 +76,7 @@ class VisualPresetsData {
       particleDensity: 160,
       scanSpeed: 1.0,
       waveformFrequency: 4.5,
-      glowIntensity: 0.8,
+      glowIntensity: 0.85,
       glitchAmount: 0.15,
       showGrid: true,
       showWaveformRings: true,
@@ -85,19 +85,19 @@ class VisualPresetsData {
     ),
     VisualEffectSettings(
       preset: VisualThemePreset.solarGold,
-      title: 'RADIANT ISOTOPE GOLD',
-      description: 'Warm solar amber and tungsten rays celebrating high-energy nuclear medicine and photon beams.',
+      title: 'CT DUAL-ENERGY PHOTON BEAM',
+      description: 'Warm solar amber and tungsten photon accelerator rays celebrating high-energy dual-energy CT physics.',
       palette: [
         Color(0xFFFFB703),
         Color(0xFFFFD166),
         Color(0xFFFB8500),
         Color(0xFFFFE6A7),
       ],
-      particleDensity: 120,
-      scanSpeed: 0.9,
-      waveformFrequency: 3.0,
-      glowIntensity: 0.85,
-      glitchAmount: 0.05,
+      particleDensity: 130,
+      scanSpeed: 1.1,
+      waveformFrequency: 3.2,
+      glowIntensity: 0.88,
+      glitchAmount: 0.06,
       showGrid: true,
       showWaveformRings: true,
       showDataCoordinates: true,
@@ -105,8 +105,8 @@ class VisualPresetsData {
     ),
     VisualEffectSettings(
       preset: VisualThemePreset.bioInfrared,
-      title: 'INFRARED THERMAL FLUX',
-      description: 'Cinematic hyper-contrast infrared visualization mimicking spectroscopic thermal emission gradients.',
+      title: 'INFRARED THERMAL SPECTROGRAM',
+      description: 'Cinematic hyper-contrast infrared plasma visualization mimicking spectroscopic heat emission and blood perfusion.',
       palette: [
         Color(0xFFFF3366),
         Color(0xFFFF6B6B),

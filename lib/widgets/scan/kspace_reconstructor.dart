@@ -45,7 +45,7 @@ class _KSpaceReconstructorState extends State<KSpaceReconstructor> with SingleTi
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,45 +53,52 @@ class _KSpaceReconstructorState extends State<KSpaceReconstructor> with SingleTi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '2D INVERSE FAST FOURIER TRANSFORM (2D-IFFT)',
-                    style: AppTypography.hudLabel.copyWith(color: color),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Raw Frequency Domain → Spatial Domain',
-                    style: AppTypography.titleMedium.copyWith(fontSize: 18),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '2D INVERSE FAST FOURIER TRANSFORM (2D-IFFT)',
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: 9.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Raw Frequency Domain → Spatial Domain',
+                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(color: color),
                 ),
                 child: Text(
-                  'MATHEMATICAL RECONSTRUCTION',
-                  style: AppTypography.hudLabel.copyWith(color: color, fontSize: 9),
+                  '2D-IFFT RECON',
+                  style: AppTypography.hudLabel.copyWith(color: color, fontSize: 8.5),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // 2D IFFT Transition Canvas
           SizedBox(
-            height: 240,
+            height: 220,
             width: double.infinity,
             child: AnimatedBuilder(
               animation: _animController,
               builder: (context, _) {
                 return CustomPaint(
-                  size: const Size(double.infinity, 240),
+                  size: const Size(double.infinity, 220),
                   painter: _KSpacePainter(
                     progress: _animController.value,
                     color: color,
@@ -100,7 +107,7 @@ class _KSpaceReconstructorState extends State<KSpaceReconstructor> with SingleTi
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Educational physics explanation note
           Container(
@@ -112,12 +119,12 @@ class _KSpaceReconstructorState extends State<KSpaceReconstructor> with SingleTi
             ),
             child: Row(
               children: [
-                Icon(Icons.auto_awesome_rounded, color: color, size: 20),
-                const SizedBox(width: 10),
+                Icon(Icons.auto_awesome_rounded, color: color, size: 18),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'The center of k-space holds anatomical contrast (low spatial frequencies), while the periphery holds fine edge sharpness (high spatial frequencies). 2D-IFFT converts phase & frequency integrals into clinical voxels.',
-                    style: AppTypography.bodySmall.copyWith(fontSize: 11, color: AppColors.textSecondary),
+                    style: AppTypography.bodySmall.copyWith(fontSize: 10.5, color: AppColors.textSecondary),
                   ),
                 ),
               ],
@@ -148,62 +155,56 @@ class _KSpacePainter extends CustomPainter {
     if (kspaceAlpha > 0.05) {
       final kPaint = Paint()
         ..color = color.withOpacity(kspaceAlpha * 0.7)
-        ..style = PaintingStyle.fill;
+        ..strokeWidth = 1.0;
 
-      // Draw high density frequency speckles
-      for (int i = 0; i < 180; i++) {
-        final rand = math.Random(i * 1337);
-        final dist = rand.nextDouble();
-        final angle = rand.nextDouble() * 2 * math.pi;
-        final r = math.pow(dist, 2.5) * 80;
-        final px = cx + math.cos(angle) * r;
-        final py = cy + math.sin(angle) * r;
-        final dotSize = (1.0 - dist) * 2.5 + 0.8;
-        canvas.drawCircle(Offset(px, py), dotSize, kPaint);
+      // Concentric raw frequency waves
+      for (int r = 10; r < 100; r += 15) {
+        canvas.drawCircle(Offset(cx, cy), r.toDouble(), kPaint..style = PaintingStyle.stroke);
       }
 
-      // Bright center star in k-space (Contrast peak)
-      final starPaint = Paint()
-        ..color = Colors.white.withOpacity(kspaceAlpha * 0.9)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 4);
-      canvas.drawCircle(Offset(cx, cy), 8.0, starPaint);
+      // High frequency starburst lines
+      for (int i = 0; i < 16; i++) {
+        final angle = i * (math.pi / 8);
+        canvas.drawLine(
+          Offset(cx + math.cos(angle) * 10, cy + math.sin(angle) * 10),
+          Offset(cx + math.cos(angle) * 110, cy + math.sin(angle) * 110),
+          kPaint,
+        );
+      }
     }
 
-    // Draw Reconstructed Spatial Anatomical Contours (Fade in as progress increases)
+    // Draw Spatial Domain Brain Reconstruction (Fade in with progress)
     final spatialAlpha = progress.clamp(0.0, 1.0);
     if (spatialAlpha > 0.05) {
-      final brainPath = Path();
-      brainPath.addOval(Rect.fromCenter(center: Offset(cx, cy), width: 140, height: 170));
-
-      final fillPaint = Paint()
-        ..color = color.withOpacity(spatialAlpha * 0.15)
-        ..style = PaintingStyle.fill;
-      canvas.drawPath(brainPath, fillPaint);
-
-      final strokePaint = Paint()
-        ..color = color.withOpacity(spatialAlpha * 0.85)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-      canvas.drawPath(brainPath, strokePaint);
-
-      // Ventricles & Sulci
-      final ventPaint = Paint()
-        ..color = Colors.white.withOpacity(spatialAlpha * 0.7)
+      final brainPaint = Paint()
+        ..color = Colors.white.withOpacity(spatialAlpha * 0.85)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
 
-      // Left Lateral Ventricle
-      canvas.drawArc(Rect.fromCenter(center: Offset(cx - 15, cy - 10), width: 22, height: 45), 0.5, 2.2, false, ventPaint);
-      // Right Lateral Ventricle
-      canvas.drawArc(Rect.fromCenter(center: Offset(cx + 15, cy - 10), width: 22, height: 45), 0.5, -2.2, false, ventPaint);
-    }
+      // Calvarium / Skull contour
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(cx, cy), width: 140 * spatialAlpha, height: 170 * spatialAlpha),
+        brainPaint,
+      );
 
-    // Scanning Fourier Wave Line
-    final fourierY = (progress * size.height);
-    final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.8)
-      ..strokeWidth = 1.5;
-    canvas.drawLine(Offset(cx - 100, fourierY), Offset(cx + 100, fourierY), linePaint);
+      // Ventricles & Sulci contours
+      final ventriclePaint = Paint()
+        ..color = color.withOpacity(spatialAlpha * 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+
+      final leftVent = Path()
+        ..moveTo(cx - 15, cy - 30)
+        ..quadraticBezierTo(cx - 30, cy, cx - 10, cy + 25)
+        ..quadraticBezierTo(cx - 5, cy, cx - 15, cy - 30);
+      canvas.drawPath(leftVent, ventriclePaint);
+
+      final rightVent = Path()
+        ..moveTo(cx + 15, cy - 30)
+        ..quadraticBezierTo(cx + 30, cy, cx + 10, cy + 25)
+        ..quadraticBezierTo(cx + 5, cy, cx + 15, cy - 30);
+      canvas.drawPath(rightVent, ventriclePaint);
+    }
   }
 
   @override

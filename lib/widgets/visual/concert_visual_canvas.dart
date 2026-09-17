@@ -1,17 +1,18 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/visual_mode_preset.dart';
-import '../../theme/app_colors.dart';
-
+import '../../services/audio_service.dart';
 
 class ConcertVisualCanvas extends StatefulWidget {
   final VisualEffectSettings settings;
   final bool isInteractive;
+  final double beatPulseTrigger; // 0.0 to 1.0 manual or audio pulse
 
   const ConcertVisualCanvas({
     super.key,
     required this.settings,
     this.isInteractive = true,
+    this.beatPulseTrigger = 0.0,
   });
 
   @override
@@ -21,6 +22,7 @@ class ConcertVisualCanvas extends StatefulWidget {
 class _ConcertVisualCanvasState extends State<ConcertVisualCanvas> with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   final List<_VisualParticle> _particles = [];
+  final List<_TouchRipple> _ripples = [];
   Offset? _pointerPos;
   double _interactionIntensity = 0.0;
   final math.Random _random = math.Random();
@@ -43,9 +45,9 @@ class _ConcertVisualCanvasState extends State<ConcertVisualCanvas> with SingleTi
       _particles.add(_VisualParticle(
         x: _random.nextDouble(),
         y: _random.nextDouble(),
-        vx: (_random.nextDouble() - 0.5) * 0.0012 * widget.settings.scanSpeed,
-        vy: (_random.nextDouble() - 0.5) * 0.0012 * widget.settings.scanSpeed,
-        radius: _random.nextDouble() * 3.5 + 1.0,
+        vx: (_random.nextDouble() - 0.5) * 0.0016 * widget.settings.scanSpeed,
+        vy: (_random.nextDouble() - 0.5) * 0.0016 * widget.settings.scanSpeed,
+        radius: _random.nextDouble() * 3.5 + 1.2,
         alpha: _random.nextDouble() * 0.7 + 0.3,
         colorIndex: i % widget.settings.palette.length,
         orbitRadius: _random.nextDouble() * 160 + 40,
@@ -53,6 +55,12 @@ class _ConcertVisualCanvasState extends State<ConcertVisualCanvas> with SingleTi
         orbitAngle: _random.nextDouble() * 2 * math.pi,
       ));
     }
+  }
+
+  void _addTouchRipple(Offset pos) {
+    if (_ripples.length > 8) _ripples.removeAt(0);
+    _ripples.add(_TouchRipple(center: pos, createdAtTime: _animController.value));
+    SoundService().playSound(SoundEffect.laserBeep);
   }
 
   @override
@@ -76,6 +84,12 @@ class _ConcertVisualCanvasState extends State<ConcertVisualCanvas> with SingleTi
     Widget canvas = AnimatedBuilder(
       animation: _animController,
       builder: (context, _) {
+        // Update ripples
+        _ripples.removeWhere((r) => r.progress >= 1.0);
+        for (var r in _ripples) {
+          r.update();
+        }
+
         return CustomPaint(
           size: Size.infinite,
           painter: _ConcertVisualPainter(
@@ -84,26 +98,29 @@ class _ConcertVisualCanvasState extends State<ConcertVisualCanvas> with SingleTi
             particles: _particles,
             pointerPos: _pointerPos,
             interactionIntensity: _interactionIntensity,
+            ripples: _ripples,
+            beatPulse: widget.beatPulseTrigger,
           ),
         );
       },
     );
 
     if (widget.isInteractive) {
-      canvas = Listener(
-        onPointerHover: (event) {
+      canvas = GestureDetector(
+        onTapDown: (details) {
+          _addTouchRipple(details.localPosition);
           setState(() {
-            _pointerPos = event.localPosition;
-            _interactionIntensity = 0.8;
-          });
-        },
-        onPointerMove: (event) {
-          setState(() {
-            _pointerPos = event.localPosition;
+            _pointerPos = details.localPosition;
             _interactionIntensity = 1.0;
           });
         },
-        onPointerUp: (_) {
+        onPanUpdate: (details) {
+          setState(() {
+            _pointerPos = details.localPosition;
+            _interactionIntensity = 0.9;
+          });
+        },
+        onPanEnd: (_) {
           setState(() {
             _pointerPos = null;
             _interactionIntensity = 0.0;
@@ -114,6 +131,23 @@ class _ConcertVisualCanvasState extends State<ConcertVisualCanvas> with SingleTi
     }
 
     return canvas;
+  }
+}
+
+class _TouchRipple {
+  final Offset center;
+  final double createdAtTime;
+  double radius = 10.0;
+  double maxRadius = 220.0;
+  double opacity = 1.0;
+
+  double get progress => radius / maxRadius;
+
+  _TouchRipple({required this.center, required this.createdAtTime});
+
+  void update() {
+    radius += 6.5;
+    opacity = (1.0 - progress).clamp(0.0, 1.0);
   }
 }
 
@@ -158,8 +192,8 @@ class _VisualParticle {
       final dy = pointer.dy - py;
       final dist = math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 180 && dist > 1) {
-        final force = (180 - dist) / 180 * 0.0006;
+      if (dist < 200 && dist > 1) {
+        final force = (200 - dist) / 200 * 0.001;
         vx += (dx / dist) * force;
         vy += (dy / dist) * force;
       }
@@ -173,6 +207,8 @@ class _ConcertVisualPainter extends CustomPainter {
   final List<_VisualParticle> particles;
   final Offset? pointerPos;
   final double interactionIntensity;
+  final List<_TouchRipple> ripples;
+  final double beatPulse;
 
   _ConcertVisualPainter({
     required this.time,
@@ -180,6 +216,8 @@ class _ConcertVisualPainter extends CustomPainter {
     required this.particles,
     required this.pointerPos,
     required this.interactionIntensity,
+    required this.ripples,
+    required this.beatPulse,
   });
 
   @override
@@ -192,15 +230,17 @@ class _ConcertVisualPainter extends CustomPainter {
     final secondaryColor = settings.palette.length > 1 ? settings.palette[1] : primaryColor;
     final accentColor = settings.palette.length > 2 ? settings.palette[2] : primaryColor;
 
+    final pulseScale = 1.0 + (math.sin(time * 2.0).abs() * 0.12 + beatPulse * 0.25) * (settings.isAudioPulseActive ? 1.0 : 0.2);
+
     // 1. Futuristic Radial Background Glow & Ambient Waves
     final bgGlowPaint = Paint()
       ..shader = RadialGradient(
         center: Alignment.center,
-        radius: 0.95,
+        radius: 0.95 * pulseScale,
         colors: [
-          primaryColor.withOpacity(0.18 * settings.glowIntensity),
-          secondaryColor.withOpacity(0.08 * settings.glowIntensity),
-          Colors.transparent,
+          primaryColor.withOpacity(0.22 * settings.glowIntensity),
+          secondaryColor.withOpacity(0.10 * settings.glowIntensity),
+          const Color(0xFF03060F),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgGlowPaint);
@@ -208,10 +248,10 @@ class _ConcertVisualPainter extends CustomPainter {
     // 2. High-Tech Grid Mesh
     if (settings.showGrid) {
       final gridPaint = Paint()
-        ..color = primaryColor.withOpacity(0.06 * settings.glowIntensity)
+        ..color = primaryColor.withOpacity(0.07 * settings.glowIntensity)
         ..strokeWidth = 1.0;
 
-      const spacing = 50.0;
+      const spacing = 45.0;
       for (double x = 0; x < size.width; x += spacing) {
         canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
       }
@@ -220,37 +260,57 @@ class _ConcertVisualPainter extends CustomPainter {
       }
     }
 
-    // 3. Central Holographic Medical Wireframe Silhouette (Brain & Orb)
-    final brainRadius = math.min(size.width, size.height) * 0.28;
-    final brainPath = Path();
-    brainPath.addOval(Rect.fromCenter(center: Offset(cx, cy), width: brainRadius * 1.8, height: brainRadius * 2.2));
+    // 3. 3D Holographic Brain Wireframe Mesh with Morphing Sulci
+    final brainRadius = math.min(size.width, size.height) * 0.24 * pulseScale;
+    const brainRings = 10;
 
-    final brainGlow = Paint()
-      ..color = primaryColor.withOpacity(0.35 * settings.glowIntensity)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    canvas.drawPath(brainPath, brainGlow);
+    for (int r = 0; r < brainRings; r++) {
+      final ringNorm = (r / brainRings);
+      final ringR = brainRadius * math.sin(ringNorm * math.pi);
+      final ringY = cy - brainRadius * math.cos(ringNorm * math.pi) * 0.85;
 
-    final brainStroke = Paint()
-      ..color = primaryColor.withOpacity(0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawPath(brainPath, brainStroke);
+      final p = Path();
+      const points = 32;
+      for (int i = 0; i <= points; i++) {
+        final theta = (i / points) * 2 * math.pi;
+        final sulci = math.sin(theta * 5 + time * 1.5) * (ringR * 0.1) + math.cos(theta * 7) * (ringR * 0.05);
+        final px = cx + math.cos(theta + time * 0.3) * (ringR + sulci);
+        final py = ringY + math.sin(theta) * (ringR * 0.3);
+
+        if (i == 0) {
+          p.moveTo(px, py);
+        } else {
+          p.lineTo(px, py);
+        }
+      }
+      p.close();
+
+      final wirePaint = Paint()
+        ..color = primaryColor.withOpacity((0.25 + ringNorm * 0.4) * settings.glowIntensity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4;
+
+      canvas.drawPath(p, wirePaint);
+    }
+
+    // Central Glowing Synaptic Core
+    final coreGlow = Paint()
+      ..color = primaryColor.withOpacity(0.4 * settings.glowIntensity)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+    canvas.drawCircle(Offset(cx, cy), 30 * pulseScale, coreGlow);
 
     // 4. Concentric Waveform Frequency Rings (Concert Audio Pulse)
     if (settings.showWaveformRings) {
-      for (int ring = 1; ring <= 4; ring++) {
-        final r = brainRadius * (0.5 + ring * 0.35);
+      for (int ring = 1; ring <= 3; ring++) {
+        final r = brainRadius * (0.8 + ring * 0.45);
         final ringPath = Path();
-        const numPoints = 72;
+        const numPoints = 64;
 
         for (int i = 0; i <= numPoints; i++) {
           final theta = (i / numPoints) * 2 * math.pi;
-          // Harmonic wave distortion
-          final waveOffset = math.sin(theta * settings.waveformFrequency + time * (ring % 2 == 0 ? 2 : -2)) * (12.0 * settings.glowIntensity);
-          final px = cx + math.cos(theta) * (r + waveOffset);
-          final py = cy + math.sin(theta) * (r + waveOffset);
+          final harmonic = math.sin(theta * settings.waveformFrequency + time * 2.0 + ring) * 12.0 * pulseScale;
+          final px = cx + math.cos(theta) * (r + harmonic);
+          final py = cy + math.sin(theta) * (r + harmonic);
 
           if (i == 0) {
             ringPath.moveTo(px, py);
@@ -260,18 +320,32 @@ class _ConcertVisualPainter extends CustomPainter {
         }
         ringPath.close();
 
-        final ringColor = settings.palette[ring % settings.palette.length];
         final ringPaint = Paint()
-          ..color = ringColor.withOpacity(0.5 / ring * settings.glowIntensity)
+          ..color = (ring % 2 == 0 ? secondaryColor : accentColor).withOpacity(0.35 * settings.glowIntensity)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.6;
+
         canvas.drawPath(ringPath, ringPaint);
       }
     }
 
-    // 5. Reactive Quantum Particles
-    final pPaint = Paint()..style = PaintingStyle.fill;
-    final connPaint = Paint()..strokeWidth = 0.8;
+    // 5. Rotating Sweeping Laser Beams (VJ Scanner)
+    final sweepAngle = time * settings.scanSpeed;
+    final sweepPaint = Paint()
+      ..shader = SweepGradient(
+        center: Alignment.center,
+        startAngle: sweepAngle,
+        endAngle: sweepAngle + math.pi * 0.5,
+        colors: [
+          primaryColor.withOpacity(0.35 * settings.glowIntensity),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: size.width));
+    canvas.drawCircle(Offset(cx, cy), math.max(size.width, size.height), sweepPaint);
+
+    // 6. Particle Constellation Network & Swarm
+    final particlePaint = Paint()..style = PaintingStyle.fill;
+    final linePaint = Paint()..strokeWidth = 0.8;
 
     for (int i = 0; i < particles.length; i++) {
       final p = particles[i];
@@ -281,11 +355,11 @@ class _ConcertVisualPainter extends CustomPainter {
       final py = p.y * size.height;
       final pColor = settings.palette[p.colorIndex % settings.palette.length];
 
-      pPaint.color = pColor.withOpacity(p.alpha * settings.glowIntensity);
-      canvas.drawCircle(Offset(px, py), p.radius, pPaint);
+      particlePaint.color = pColor.withOpacity(p.alpha * settings.glowIntensity);
+      canvas.drawCircle(Offset(px, py), p.radius * pulseScale, particlePaint);
 
-      // Particle Interconnections
-      for (int j = i + 1; j < math.min(i + 5, particles.length); j++) {
+      // Connect close particles (Constellation mesh)
+      for (int j = i + 1; j < math.min(i + 12, particles.length); j++) {
         final p2 = particles[j];
         final p2x = p2.x * size.width;
         final p2y = p2.y * size.height;
@@ -293,54 +367,44 @@ class _ConcertVisualPainter extends CustomPainter {
         final dy = py - p2y;
         final dist = math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 100) {
-          final alpha = (1.0 - dist / 100) * 0.25 * settings.glowIntensity;
-          connPaint.color = pColor.withOpacity(alpha);
-          canvas.drawLine(Offset(px, py), Offset(p2x, p2y), connPaint);
+        if (dist < 70) {
+          final lineAlpha = (1.0 - (dist / 70)) * 0.3 * settings.glowIntensity;
+          linePaint.color = primaryColor.withOpacity(lineAlpha);
+          canvas.drawLine(Offset(px, py), Offset(p2x, p2y), linePaint);
         }
       }
     }
 
-    // 6. Laser Scan Sweep Bar with Trail
-    final scanY = ((time * 0.5 * settings.scanSpeed) % (2 * math.pi) / (2 * math.pi)) * size.height;
-    final laserPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          Colors.transparent,
-          accentColor.withOpacity(0.15),
-          accentColor.withOpacity(0.9 * settings.glowIntensity),
-          accentColor.withOpacity(0.15),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
-      ).createShader(Rect.fromLTRB(0, scanY - 3, size.width, scanY + 3));
+    // 7. Interactive Touch Ripple Shockwaves
+    for (var ripple in ripples) {
+      final ripplePaint = Paint()
+        ..color = primaryColor.withOpacity(ripple.opacity * 0.8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5;
 
-    canvas.drawRect(Rect.fromLTRB(0, scanY - 2, size.width, scanY + 2), laserPaint);
+      canvas.drawCircle(ripple.center, ripple.radius, ripplePaint);
 
-    // 7. Chromatic Aberration & Glitch Lines
-    if (settings.glitchAmount > 0.05) {
-      final glitchRandom = math.Random((time * 60).toInt());
-      if (glitchRandom.nextDouble() < settings.glitchAmount) {
-        final gy = glitchRandom.nextDouble() * size.height;
-        final gh = glitchRandom.nextDouble() * 14 + 4;
-        final gOffset = (glitchRandom.nextDouble() - 0.5) * 20;
+      final outerGlow = Paint()
+        ..color = secondaryColor.withOpacity(ripple.opacity * 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6.0
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
-        final glitchPaint = Paint()
-          ..color = (glitchRandom.nextBool() ? AppColors.magenta : AppColors.cyan).withOpacity(0.4)
-          ..style = PaintingStyle.fill;
-
-        canvas.drawRect(Rect.fromLTWH(gOffset, gy, size.width, gh), glitchPaint);
-      }
+      canvas.drawCircle(ripple.center, ripple.radius, outerGlow);
     }
 
-    // 8. Dynamic Pointer Ring Ripple
-    if (pointerPos != null) {
-      final rippleR = 30.0 + (time * 80) % 50;
-      final ripplePaint = Paint()
-        ..color = primaryColor.withOpacity(0.4)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-      canvas.drawCircle(pointerPos!, rippleR, ripplePaint);
+    // 8. K-Space Glitch / Chromatic Aberration Burst
+    if (settings.glitchAmount > 0.1 && (time % 1.2 < 0.15 || beatPulse > 0.5)) {
+      final glitchOffset = settings.glitchAmount * 18.0;
+      final glitchPaint = Paint()
+        ..color = const Color(0xFFFF0055).withOpacity(0.3)
+        ..blendMode = BlendMode.screen;
+      canvas.drawRect(Rect.fromLTWH(0, (cy + math.sin(time * 10) * 80) % size.height, size.width, 6), glitchPaint);
+
+      final cyanGlitch = Paint()
+        ..color = const Color(0xFF00F2FE).withOpacity(0.3)
+        ..blendMode = BlendMode.screen;
+      canvas.drawRect(Rect.fromLTWH(0, (cy - math.cos(time * 8) * 80 + glitchOffset) % size.height, size.width, 4), cyanGlitch);
     }
   }
 

@@ -258,8 +258,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
           const SizedBox(height: 20),
 
           // Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            alignment: WrapAlignment.spaceBetween,
             children: [
               if (_selectedZone.id == 'brain')
                 GlowingButton(
@@ -267,9 +269,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   icon: Icons.blur_on_rounded,
                   primaryColor: AppColors.cyan,
                   onPressed: _openBrainExplorer,
-                )
-              else
-                const SizedBox(),
+                ),
               GlowingButton(
                 text: 'START SCAN SIMULATION',
                 icon: Icons.play_arrow_rounded,

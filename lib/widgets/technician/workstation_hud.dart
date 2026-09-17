@@ -18,7 +18,7 @@ class WorkstationHUD extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassPanel(
       borderColor: AppColors.cyan.withOpacity(0.4),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,29 +27,35 @@ class WorkstationHUD extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: AppColors.cyan,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.cyan.withOpacity(0.8),
-                          blurRadius: 8,
-                        ),
-                      ],
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.cyan.withOpacity(0.8),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'RADTECH CONSOLE • WORKSTATION 04',
-                    style: AppTypography.hudLabel.copyWith(fontSize: 11),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'RADTECH CONSOLE • WORKSTATION 04',
+                        style: AppTypography.hudLabel.copyWith(fontSize: 10.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -58,16 +64,17 @@ class WorkstationHUD extends StatelessWidget {
                   border: Border.all(color: AppColors.emerald),
                 ),
                 child: Text(
-                  'COMPETENCY SCORE: $currentScore PTS',
+                  'SCORE: $currentScore PTS',
                   style: AppTypography.hudLabel.copyWith(
                     color: AppColors.emerald,
                     fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Workstation Patient Status Grid
           Container(
@@ -80,28 +87,70 @@ class WorkstationHUD extends StatelessWidget {
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildField('PATIENT', '${techCase.caseCode} (${techCase.patientAge}Y, ${techCase.patientGender})'),
-                    _buildField('EXAM', techCase.examName),
-                    _buildField('POSITIONING', techCase.positioningStatus.split(';').first),
+                    Expanded(
+                      flex: 3,
+                      child: _buildField(
+                        'PATIENT',
+                        '${techCase.caseCode} (${techCase.patientAge}Y, ${techCase.patientGender})',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 4,
+                      child: _buildField(
+                        'EXAM',
+                        techCase.examName,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 4,
+                      child: _buildField(
+                        'POSITIONING',
+                        techCase.positioningStatus.split(';').first,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 const Divider(color: Color(0x1F00F2FE)),
                 const SizedBox(height: 10),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldWithBadge('IMAGE QUALITY', '${techCase.initialImageQuality.toInt()}%', AppColors.amber),
-                    _buildFieldWithBadge('ARTIFACT', techCase.detectedArtifact, AppColors.alertRed),
-                    _buildField('SYSTEM', 'PACS INTEGRATION OK'),
+                    Expanded(
+                      flex: 3,
+                      child: _buildFieldWithBadge(
+                        'IMAGE QUALITY',
+                        '${techCase.initialImageQuality.toInt()}%',
+                        AppColors.amber,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 5,
+                      child: _buildFieldWithBadge(
+                        'ARTIFACT',
+                        techCase.detectedArtifact,
+                        AppColors.alertRed,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: _buildField(
+                        'SYSTEM',
+                        'PACS OK',
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Alert Banner
           Container(
@@ -137,9 +186,19 @@ class WorkstationHUD extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted)),
+        Text(
+          label,
+          style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 2),
-        Text(value, style: AppTypography.hudValue.copyWith(fontSize: 11, color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: AppTypography.hudValue.copyWith(fontSize: 10.5, color: AppColors.textPrimary),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
@@ -148,7 +207,12 @@ class WorkstationHUD extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted)),
+        Text(
+          label,
+          style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -159,7 +223,9 @@ class WorkstationHUD extends StatelessWidget {
           ),
           child: Text(
             value,
-            style: AppTypography.hudValue.copyWith(fontSize: 10, color: badgeColor, fontWeight: FontWeight.w700),
+            style: AppTypography.hudValue.copyWith(fontSize: 9.5, color: badgeColor, fontWeight: FontWeight.w700),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

@@ -107,7 +107,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,22 +116,29 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'REAL-TIME RF PULSE & GRADIENT ACQUISITION',
-                    style: AppTypography.hudLabel.copyWith(color: color),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${widget.patient.caseId} • ${_activeSequence.name}',
-                    style: AppTypography.titleMedium.copyWith(fontSize: 18),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'REAL-TIME RF PULSE & GRADIENT ACQUISITION',
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${widget.patient.caseId} • ${_activeSequence.name}',
+                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: _isScanning ? AppColors.emerald.withOpacity(0.2) : color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(6),
@@ -141,19 +148,19 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 8,
-                      height: 8,
+                      width: 7,
+                      height: 7,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: _isScanning ? AppColors.emerald : color,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Text(
-                      _isScanning ? 'ACQUIRING RAW K-SPACE' : 'SCANNER READY',
+                      _isScanning ? 'ACQUIRING K-SPACE' : 'SCANNER READY',
                       style: AppTypography.hudLabel.copyWith(
                         color: _isScanning ? AppColors.emerald : color,
-                        fontSize: 9,
+                        fontSize: 8.5,
                       ),
                     ),
                   ],
@@ -161,11 +168,11 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Sequence Selection Bar
           SizedBox(
-            height: 38,
+            height: 36,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: widget.modality.availableSequences.length,
@@ -180,7 +187,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                     style: AppTypography.hudLabel.copyWith(
                       color: isSelected ? AppColors.background : color,
                       fontWeight: FontWeight.w700,
-                      fontSize: 11,
+                      fontSize: 10.5,
                     ),
                   ),
                   selected: isSelected,
@@ -199,11 +206,11 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Live RF Waveform & Scanner Animation Box
           Container(
-            height: 150,
+            height: 140,
             width: double.infinity,
             decoration: BoxDecoration(
               color: AppColors.surface.withOpacity(0.9),
@@ -213,7 +220,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
             child: Stack(
               children: [
                 WaveformVisualizer(
-                  height: 150,
+                  height: 140,
                   primaryColor: color,
                   secondaryColor: AppColors.emerald,
                   frequency: _isScanning ? 6.5 : 2.0,
@@ -233,7 +240,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                   left: 12,
                   child: Text(
                     'TR: ${_activeSequence.defaultTR}ms | TE: ${_activeSequence.defaultTE}ms | FA: 90°',
-                    style: AppTypography.telemetryCode.copyWith(fontSize: 10, color: color),
+                    style: AppTypography.telemetryCode.copyWith(fontSize: 9.5, color: color),
                   ),
                 ),
                 Positioned(
@@ -241,33 +248,32 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                   right: 12,
                   child: Text(
                     'SLICE: $_currentSlice / $_totalSlices',
-                    style: AppTypography.hudValue.copyWith(fontSize: 11, color: AppColors.textPrimary),
+                    style: AppTypography.hudValue.copyWith(fontSize: 10.5, color: AppColors.textPrimary),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Live Telemetry Grid
+          // Live Telemetry Grid (Responsive)
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.surfaceHighlight.withOpacity(0.5),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.cardGlassBorder),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTelemetryItem('IMAGE QUALITY', '${_qualityScore.toInt()}%', AppColors.cyan),
-                _buildTelemetryItem('ARTIFACT', 'MOTION DETECTED', AppColors.amber),
-                _buildTelemetryItem('FIELD STRENGTH', '3.0 TESLA', AppColors.emerald),
-                _buildTelemetryItem('RF POWER', '450 W', AppColors.violet),
+                Expanded(child: _buildTelemetryItem('QUALITY', '${_qualityScore.toInt()}%', AppColors.cyan)),
+                Expanded(child: _buildTelemetryItem('ARTIFACT', 'MOTION', AppColors.amber)),
+                Expanded(child: _buildTelemetryItem('FIELD', '3.0T', AppColors.emerald)),
+                Expanded(child: _buildTelemetryItem('RF POWER', '450 W', AppColors.violet)),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Progress Bar
           Column(
@@ -276,31 +282,34 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('K-SPACE ENCODING PROGRESS', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
-                  Text('${(_scanProgress * 100).toInt()}%', style: AppTypography.hudValue.copyWith(fontSize: 12, color: color)),
+                  Text('K-SPACE ENCODING PROGRESS', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+                  Text('${(_scanProgress * 100).toInt()}%', style: AppTypography.hudValue.copyWith(fontSize: 11, color: color)),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 5),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: _scanProgress,
-                  minHeight: 6,
+                  minHeight: 5,
                   backgroundColor: AppColors.surface,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          // Controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Controls (Responsive Wrap)
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               Text(
                 'Simulated Sequence: Educational Mode',
-                style: AppTypography.bodySmall.copyWith(fontSize: 10, color: AppColors.textMuted),
+                style: AppTypography.bodySmall.copyWith(fontSize: 9.5, color: AppColors.textMuted),
               ),
               GlowingButton(
                 text: _isScanning ? 'ACQUIRING...' : (_scanProgress >= 1.0 ? 'VIEW RECONSTRUCTED IMAGE' : 'START SCAN'),
@@ -334,9 +343,19 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
   Widget _buildTelemetryItem(String label, String value, Color accent) {
     return Column(
       children: [
-        Text(label, style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted)),
-        const SizedBox(height: 3),
-        Text(value, style: AppTypography.hudValue.copyWith(fontSize: 11, color: accent, fontWeight: FontWeight.w700)),
+        Text(
+          label,
+          style: AppTypography.hudLabel.copyWith(fontSize: 7.5, color: AppColors.textMuted),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: AppTypography.hudValue.copyWith(fontSize: 10.5, color: accent, fontWeight: FontWeight.w700),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }

@@ -33,10 +33,14 @@ class _BrainExplorerScreenState extends State<BrainExplorerScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Top Navigation Bar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton.filledTonal(
                         icon: const Icon(Icons.arrow_back_rounded, color: AppColors.cyan, size: 20),
@@ -49,12 +53,12 @@ class _BrainExplorerScreenState extends State<BrainExplorerScreen> {
                           Navigator.of(context).pop();
                         },
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('ANATOMICAL DEEP DIVE', style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 10)),
-                          Text('3D BRAIN LOBES EXPLORER', style: AppTypography.displaySmall.copyWith(fontSize: 18)),
+                          Text('ANATOMICAL DEEP DIVE', style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 9.5)),
+                          Text('3D BRAIN LOBES EXPLORER', style: AppTypography.displaySmall.copyWith(fontSize: 17)),
                         ],
                       ),
                     ],
@@ -64,6 +68,7 @@ class _BrainExplorerScreenState extends State<BrainExplorerScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildPlaneChip('3D MESH', BrainSlicePlane.threeD),
                         _buildPlaneChip('AXIAL', BrainSlicePlane.axial),
@@ -74,7 +79,7 @@ class _BrainExplorerScreenState extends State<BrainExplorerScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Main Responsive Layout
               Expanded(

@@ -36,7 +36,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,35 +45,42 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'PATIENT BRIEFING & SAFETY PROTOCOL',
-                    style: AppTypography.hudLabel.copyWith(color: color),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${widget.patient.caseId} • ${widget.patient.patientInitials} (${widget.patient.age}Y, ${widget.patient.gender})',
-                    style: AppTypography.titleMedium.copyWith(fontSize: 18),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PATIENT BRIEFING & SAFETY PROTOCOL',
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${widget.patient.caseId} • ${widget.patient.patientInitials} (${widget.patient.age}Y, ${widget.patient.gender})',
+                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(color: color),
                 ),
                 child: Text(
                   widget.modality.tag,
-                  style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10),
+                  style: AppTypography.hudLabel.copyWith(color: color, fontSize: 9),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Clinical Indication Grid
           Container(
@@ -85,7 +92,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
             ),
             child: Row(
               children: [
-                Icon(Icons.medical_information_outlined, color: color, size: 20),
+                Icon(Icons.medical_information_outlined, color: color, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -93,12 +100,12 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
                     children: [
                       Text(
                         'CLINICAL INDICATION & EXAM',
-                        style: AppTypography.hudLabel.copyWith(color: AppColors.textMuted, fontSize: 9),
+                        style: AppTypography.hudLabel.copyWith(color: AppColors.textMuted, fontSize: 8.5),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${widget.patient.examProtocol} — ${widget.patient.indication}',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 11),
                       ),
                     ],
                   ),
@@ -106,14 +113,14 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // Interactive Safety Checklist
           Text(
             'MANDATORY RADIOLOGIC SAFETY CHECKLIST',
-            style: AppTypography.hudLabel.copyWith(color: AppColors.textSecondary, fontSize: 10),
+            style: AppTypography.hudLabel.copyWith(color: AppColors.textSecondary, fontSize: 9.5),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           ...widget.modality.safetyChecklist.asMap().entries.map((entry) {
             final index = entry.key;
@@ -121,7 +128,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
             final isChecked = _checkedItems[index] ?? false;
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 6),
               child: InkWell(
                 onTap: () {
                   setState(() {
@@ -131,7 +138,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: isChecked ? color.withOpacity(0.1) : AppColors.surface.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
@@ -145,15 +152,16 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
                       Icon(
                         isChecked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
                         color: isChecked ? color : AppColors.textMuted,
-                        size: 20,
+                        size: 18,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           text,
                           style: AppTypography.bodySmall.copyWith(
                             color: isChecked ? AppColors.textPrimary : AppColors.textSecondary,
                             fontWeight: isChecked ? FontWeight.w600 : FontWeight.w400,
+                            fontSize: 11,
                           ),
                         ),
                       ),
@@ -164,13 +172,13 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
             );
           }),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Action Button
           Align(
             alignment: Alignment.centerRight,
             child: GlowingButton(
-              text: _allChecked ? 'PROCEED TO POSITIONING' : 'COMPLETE ALL SAFETY CHECKS',
+              text: _allChecked ? 'PROCEED TO POSITIONING' : 'CHECK ALL & PROCEED',
               icon: Icons.arrow_forward_rounded,
               primaryColor: color,
               isSecondary: !_allChecked,

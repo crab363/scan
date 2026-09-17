@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/brain_region_model.dart';
 import '../models/case_file.dart';
@@ -16,6 +17,8 @@ class AppStateService extends ChangeNotifier {
   factory AppStateService() => _instance;
   AppStateService._internal();
 
+  final math.Random _random = math.Random();
+
   int _currentNavigationIndex = 0;
   ModalityType _selectedModality = ModalityType.mri;
   BrainRegion _selectedBrainRegion = BrainData.regions.first;
@@ -23,6 +26,7 @@ class AppStateService extends ChangeNotifier {
   CaseFile _activeCaseFile = CaseFilesData.cases.first;
   VisualEffectSettings _visualSettings = VisualPresetsData.presets.first;
   int _technicianScore = 0;
+  int _consecutiveCorrectStreak = 0;
   final Map<String, String> _technicianDecisions = {};
   final Map<String, String> _caseQuizAnswers = {};
 
@@ -33,6 +37,7 @@ class AppStateService extends ChangeNotifier {
   CaseFile get activeCaseFile => _activeCaseFile;
   VisualEffectSettings get visualSettings => _visualSettings;
   int get technicianScore => _technicianScore;
+  int get consecutiveCorrectStreak => _consecutiveCorrectStreak;
   Map<String, String> get technicianDecisions => _technicianDecisions;
   Map<String, String> get caseQuizAnswers => _caseQuizAnswers;
 
@@ -69,14 +74,48 @@ class AppStateService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Selects a random RadTech technician case, prioritizing unsolved cases
+  TechnicianCase randomizeTechnicianCase({ModalityType? modalityFilter}) {
+    List<TechnicianCase> pool = TechnicianCasesData.cases;
+    if (modalityFilter != null) {
+      pool = pool.where((c) => c.modality == modalityFilter).toList();
+      if (pool.isEmpty) pool = TechnicianCasesData.cases;
+    }
+
+    // Try finding an unanswered case first
+    final unanswered = pool.where((c) => !_technicianDecisions.containsKey(c.id)).toList();
+    List<TechnicianCase> candidatePool = unanswered.isNotEmpty ? unanswered : pool;
+
+    // Filter out active case if more than 1 option is available
+    if (candidatePool.length > 1) {
+      candidatePool = candidatePool.where((c) => c.id != _activeTechnicianCase.id).toList();
+    }
+
+    final selected = candidatePool[_random.nextInt(candidatePool.length)];
+    _activeTechnicianCase = selected;
+    SoundService().playSound(SoundEffect.laserBeep);
+    notifyListeners();
+    return selected;
+  }
+
   void recordTechnicianDecision(String caseId, String optionId, int scoreDelta) {
     _technicianDecisions[caseId] = optionId;
     _technicianScore += scoreDelta;
     if (scoreDelta > 0) {
+      _consecutiveCorrectStreak++;
       SoundService().playSound(SoundEffect.successPing);
     } else {
+      _consecutiveCorrectStreak = 0;
       SoundService().playSound(SoundEffect.alertWarning);
     }
+    notifyListeners();
+  }
+
+  void resetTechnicianProgress() {
+    _technicianDecisions.clear();
+    _technicianScore = 0;
+    _consecutiveCorrectStreak = 0;
+    SoundService().playSound(SoundEffect.uiClick);
     notifyListeners();
   }
 
@@ -84,6 +123,29 @@ class AppStateService extends ChangeNotifier {
     _activeCaseFile = caseFile;
     SoundService().playSound(SoundEffect.uiClick);
     notifyListeners();
+  }
+
+  /// Selects a random PACS Diagnostic Case File
+  CaseFile randomizeCaseFile({ModalityType? modalityFilter}) {
+    List<CaseFile> pool = CaseFilesData.cases;
+    if (modalityFilter != null) {
+      pool = pool.where((c) => c.modality == modalityFilter).toList();
+      if (pool.isEmpty) pool = CaseFilesData.cases;
+    }
+
+    // Try finding an unanswered case first
+    final unanswered = pool.where((c) => !_caseQuizAnswers.containsKey(c.id)).toList();
+    List<CaseFile> candidatePool = unanswered.isNotEmpty ? unanswered : pool;
+
+    if (candidatePool.length > 1) {
+      candidatePool = candidatePool.where((c) => c.id != _activeCaseFile.id).toList();
+    }
+
+    final selected = candidatePool[_random.nextInt(candidatePool.length)];
+    _activeCaseFile = selected;
+    SoundService().playSound(SoundEffect.laserBeep);
+    notifyListeners();
+    return selected;
   }
 
   void recordCaseQuizAnswer(String caseId, String choiceId, bool isCorrect) {

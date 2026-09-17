@@ -69,26 +69,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.cyan,
-                                  boxShadow: [
-                                    BoxShadow(color: AppColors.cyan.withOpacity(0.8), blurRadius: 8),
-                                  ],
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.cyan,
+                                    boxShadow: [
+                                      BoxShadow(color: AppColors.cyan.withOpacity(0.8), blurRadius: 8),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'SYSTEM VER: 3.4.0 • ONLINE',
-                                style: AppTypography.hudLabel.copyWith(fontSize: 10),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'SYSTEM VER: 3.4.0 • ONLINE',
+                                    style: AppTypography.hudLabel.copyWith(fontSize: 9.5),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           const AudioEqualizerHUD(),
                         ],
                       ),
@@ -168,14 +175,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         const SizedBox(height: 18),
 
         // Hero Main Title
-        ShaderMask(
-          shaderCallback: (bounds) => AppColors.cyanTealGradient.createShader(bounds),
-          child: Text(
-            'SCANVERSE',
-            style: AppTypography.heroTitle.copyWith(
-              color: Colors.white,
-              fontSize: 48,
-              letterSpacing: 6.0,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: ShaderMask(
+            shaderCallback: (bounds) => AppColors.cyanTealGradient.createShader(bounds),
+            child: Text(
+              'SCANVERSE',
+              style: AppTypography.heroTitle.copyWith(
+                color: Colors.white,
+                fontSize: 48,
+                letterSpacing: 6.0,
+              ),
             ),
           ),
         ),
@@ -205,7 +216,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         const SizedBox(height: 30),
 
         // Enter Button
-        Row(
+        Wrap(
+          spacing: 16,
+          runSpacing: 12,
           children: [
             GlowingButton(
               text: 'ENTER SCANVERSE',
@@ -218,7 +231,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 widget.onEnterScanverse();
               },
             ),
-            const SizedBox(width: 16),
             GlowingButton(
               text: 'VISUAL MODE',
               icon: Icons.auto_awesome_motion_rounded,

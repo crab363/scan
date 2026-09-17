@@ -107,7 +107,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           const SizedBox(height: 24),
           // Logo & Brand
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Container(
@@ -123,27 +123,33 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
                   child: const Icon(Icons.blur_on_rounded, color: AppColors.cyan, size: 20),
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'SCANVERSE',
-                      style: AppTypography.displaySmall.copyWith(
-                        fontSize: 16,
-                        letterSpacing: 2.0,
-                        fontWeight: FontWeight.w900,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'SCANVERSE',
+                          style: AppTypography.displaySmall.copyWith(
+                            fontSize: 15,
+                            letterSpacing: 2.0,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
-                    ),
-                    Text(
-                      'RADIOLOGY OS',
-                      style: AppTypography.hudLabel.copyWith(
-                        fontSize: 8,
-                        color: AppColors.cyan,
-                        letterSpacing: 1.5,
+                      Text(
+                        'RADIOLOGY OS',
+                        style: AppTypography.hudLabel.copyWith(
+                          fontSize: 8,
+                          color: AppColors.cyan,
+                          letterSpacing: 1.5,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

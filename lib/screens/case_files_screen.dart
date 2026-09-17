@@ -9,6 +9,7 @@ import '../services/app_state_service.dart';
 import '../services/audio_service.dart';
 import '../widgets/common/hud_header.dart';
 import '../widgets/common/glass_panel.dart';
+import '../widgets/common/glowing_button.dart';
 import '../widgets/cases/case_card.dart';
 import '../widgets/cases/case_observation_quiz.dart';
 import '../widgets/scan/slice_viewer.dart';
@@ -21,7 +22,7 @@ class CaseFilesScreen extends StatefulWidget {
 }
 
 class _CaseFilesScreenState extends State<CaseFilesScreen> {
-  CaseFile _selectedCase = CaseFilesData.cases.first;
+  ModalityType? _modalityFilter;
 
   ImagingModality _getModalityInfo(ModalityType type) {
     return ModalitiesData.modalities.firstWhere(
@@ -35,55 +36,110 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
     final appState = AppStateService();
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
+    final isMobile = size.width < 600;
 
     return ListenableBuilder(
       listenable: appState,
       builder: (context, _) {
-        final answeredChoiceId = appState.caseQuizAnswers[_selectedCase.id];
+        final activeCase = appState.activeCaseFile;
+        final answeredChoiceId = appState.caseQuizAnswers[activeCase.id];
+
+        final filteredCases = _modalityFilter == null
+            ? CaseFilesData.cases
+            : CaseFilesData.cases.where((c) => c.modality == _modalityFilter).toList();
+
+        final answeredCount = CaseFilesData.cases.where((c) => appState.caseQuizAnswers.containsKey(c.id)).length;
 
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 10 : 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header
                   HUDHeader(
                     title: 'DIAGNOSTIC CASE FILES ARCHIVE',
-                    subtitle: 'Investigate clinical histories, analyze multi-slice scans, and identify radiologic anomalies',
+                    subtitle: 'Clinical histories, multi-slice scans & diagnostic radiologic anomalies',
                     tag: 'PACS REPOSITORY',
                     accentColor: AppColors.violet,
+                    trailing: Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.violet.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.violet.withOpacity(0.5)),
+                          ),
+                          child: Text(
+                            'SOLVED: $answeredCount / ${CaseFilesData.cases.length}',
+                            style: AppTypography.hudLabel.copyWith(color: AppColors.violet, fontSize: 10),
+                          ),
+                        ),
+                        GlowingButton(
+                          text: isMobile ? 'RANDOM' : 'RANDOM CASE (สุ่มเคส)',
+                          icon: Icons.shuffle_rounded,
+                          primaryColor: AppColors.violet,
+                          secondaryColor: AppColors.magenta,
+                          height: 36,
+                          onPressed: () {
+                            appState.randomizeCaseFile(modalityFilter: _modalityFilter);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
+
+                  // Modality Filter Strip
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('ALL (${CaseFilesData.cases.length})', null, AppColors.violet),
+                        _buildFilterChip('MRI BRAIN & SPINE', ModalityType.mri, AppColors.cyan),
+                        _buildFilterChip('CT CHEST & ABDOMEN', ModalityType.ct, AppColors.emerald),
+                        _buildFilterChip('DIGITAL X-RAY', ModalityType.xray, AppColors.violet),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
 
                   // Case List Carousel / Horizontal Selector
                   SizedBox(
-                    height: 110,
+                    height: 124,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      itemCount: CaseFilesData.cases.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 12),
+                      itemCount: filteredCases.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 10),
                       itemBuilder: (context, index) {
-                        final c = CaseFilesData.cases[index];
-                        final isSelected = c.id == _selectedCase.id;
+                        final c = filteredCases[index];
+                        final isSelected = c.id == activeCase.id;
+                        final isAnswered = appState.caseQuizAnswers.containsKey(c.id);
 
                         return SizedBox(
-                          width: 260,
+                          width: 270,
                           child: CaseCard(
                             caseFile: c,
                             isSelected: isSelected,
+                            isAnswered: isAnswered,
                             onTap: () {
-                              setState(() => _selectedCase = c);
-                              SoundService().playSound(SoundEffect.uiClick);
+                              appState.setActiveCaseFile(c);
                             },
                           ),
                         );
                       },
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Main Interactive Case Inspector
                   Expanded(
@@ -95,10 +151,10 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                               Expanded(
                                 flex: 4,
                                 child: SingleChildScrollView(
-                                  child: _buildPatientHistoryPanel(),
+                                  child: _buildPatientHistoryPanel(activeCase),
                                 ),
                               ),
-                              const SizedBox(width: 20),
+                              const SizedBox(width: 18),
                               // Right: Imaging Viewer & Observation Quiz
                               Expanded(
                                 flex: 6,
@@ -106,15 +162,15 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                                   child: Column(
                                     children: [
                                       SliceViewer(
-                                        modality: _getModalityInfo(_selectedCase.modality),
-                                        title: '${_selectedCase.caseNumber} • ${_selectedCase.title}',
+                                        modality: _getModalityInfo(activeCase.modality),
+                                        title: '${activeCase.caseNumber} • ${activeCase.title}',
                                       ),
-                                      const SizedBox(height: 16),
+                                      const SizedBox(height: 14),
                                       CaseObservationQuiz(
-                                        caseFile: _selectedCase,
+                                        caseFile: activeCase,
                                         answeredChoiceId: answeredChoiceId,
                                         onChoiceSelected: (choiceId, isCorrect) {
-                                          appState.recordCaseQuizAnswer(_selectedCase.id, choiceId, isCorrect);
+                                          appState.recordCaseQuizAnswer(activeCase.id, choiceId, isCorrect);
                                         },
                                       ),
                                       const SizedBox(height: 20),
@@ -127,18 +183,18 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                         : SingleChildScrollView(
                             child: Column(
                               children: [
-                                _buildPatientHistoryPanel(),
-                                const SizedBox(height: 16),
+                                _buildPatientHistoryPanel(activeCase),
+                                const SizedBox(height: 14),
                                 SliceViewer(
-                                  modality: _getModalityInfo(_selectedCase.modality),
-                                  title: '${_selectedCase.caseNumber} • ${_selectedCase.title}',
+                                  modality: _getModalityInfo(activeCase.modality),
+                                  title: '${activeCase.caseNumber} • ${activeCase.title}',
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 14),
                                 CaseObservationQuiz(
-                                  caseFile: _selectedCase,
+                                  caseFile: activeCase,
                                   answeredChoiceId: answeredChoiceId,
                                   onChoiceSelected: (choiceId, isCorrect) {
-                                    appState.recordCaseQuizAnswer(_selectedCase.id, choiceId, isCorrect);
+                                    appState.recordCaseQuizAnswer(activeCase.id, choiceId, isCorrect);
                                   },
                                 ),
                                 const SizedBox(height: 20),
@@ -155,10 +211,38 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
     );
   }
 
-  Widget _buildPatientHistoryPanel() {
+  Widget _buildFilterChip(String label, ModalityType? modality, Color accentColor) {
+    final isSelected = _modalityFilter == modality;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(
+          label,
+          style: AppTypography.hudLabel.copyWith(
+            color: isSelected ? AppColors.background : accentColor,
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        selected: isSelected,
+        selectedColor: accentColor,
+        backgroundColor: AppColors.surface,
+        side: BorderSide(color: isSelected ? accentColor : AppColors.cardGlassBorder),
+        onSelected: (selected) {
+          if (selected) {
+            setState(() => _modalityFilter = modality);
+            SoundService().playSound(SoundEffect.uiClick);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildPatientHistoryPanel(CaseFile caseFile) {
     return GlassPanel(
       borderColor: AppColors.violet.withOpacity(0.4),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +250,14 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${_selectedCase.caseNumber} DOSSIER', style: AppTypography.hudLabel.copyWith(color: AppColors.violet, fontSize: 10)),
+              Flexible(
+                child: Text(
+                  '${caseFile.caseNumber} DOSSIER',
+                  style: AppTypography.hudLabel.copyWith(color: AppColors.violet, fontSize: 10),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -175,36 +266,36 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                   border: Border.all(color: AppColors.violet),
                 ),
                 child: Text(
-                  _selectedCase.anatomyRegion.toUpperCase(),
+                  caseFile.anatomyRegion.toUpperCase(),
                   style: AppTypography.hudLabel.copyWith(color: AppColors.violet, fontSize: 8),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(_selectedCase.title, style: AppTypography.titleMedium.copyWith(fontSize: 18)),
+          Text(caseFile.title, style: AppTypography.titleMedium.copyWith(fontSize: 17)),
           const SizedBox(height: 4),
           Text(
-            'Patient: ${_selectedCase.age} Years Old • ${_selectedCase.gender}',
+            'Patient: ${caseFile.age} Years Old • ${caseFile.gender}',
             style: AppTypography.hudValue.copyWith(fontSize: 12, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Chief Complaint
-          Text('CHIEF COMPLAINT', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
-          const SizedBox(height: 4),
+          Text('CHIEF COMPLAINT', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+          const SizedBox(height: 3),
           Text(
-            _selectedCase.chiefComplaint,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, height: 1.4),
+            caseFile.chiefComplaint,
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, height: 1.35, fontSize: 12),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Symptoms List
-          Text('CLINICAL PRESENTATION & SYMPTOMS', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
-          const SizedBox(height: 6),
-          ..._selectedCase.symptoms.map((sym) {
+          Text('CLINICAL PRESENTATION & SYMPTOMS', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+          const SizedBox(height: 5),
+          ...caseFile.symptoms.map((sym) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 3),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -217,14 +308,14 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
               ),
             );
           }),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Medical History
-          Text('RELEVANT MEDICAL HISTORY', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
-          const SizedBox(height: 6),
-          ..._selectedCase.medicalHistory.map((hist) {
+          Text('RELEVANT MEDICAL HISTORY', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+          const SizedBox(height: 5),
+          ...caseFile.medicalHistory.map((hist) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 3),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -237,7 +328,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
               ),
             );
           }),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Clinical Pearls Card
           Container(
@@ -258,7 +349,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                ..._selectedCase.clinicalPearls.map((pearl) {
+                ...caseFile.clinicalPearls.map((pearl) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
@@ -270,12 +361,12 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Educational Disclaimer
           Text(
-            _selectedCase.disclaimer,
-            style: AppTypography.bodySmall.copyWith(fontSize: 9, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+            caseFile.disclaimer,
+            style: AppTypography.bodySmall.copyWith(fontSize: 8.5, color: AppColors.textMuted, fontStyle: FontStyle.italic),
           ),
         ],
       ),
