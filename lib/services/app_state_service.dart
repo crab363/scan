@@ -11,6 +11,23 @@ import '../data/technician_cases_data.dart';
 import '../data/case_files_data.dart';
 import '../data/visual_presets_data.dart';
 import 'audio_service.dart';
+import 'localization_service.dart';
+
+enum ScanPlane {
+  axial,
+  sagittal,
+  coronal,
+}
+
+enum WindowPreset {
+  brain,
+  stroke,
+  subdural,
+  bone,
+  softTissue,
+  lung,
+  custom,
+}
 
 class AppStateService extends ChangeNotifier {
   static final AppStateService _instance = AppStateService._internal();
@@ -30,6 +47,17 @@ class AppStateService extends ChangeNotifier {
   final Map<String, String> _technicianDecisions = {};
   final Map<String, String> _caseQuizAnswers = {};
 
+  // DICOM & Medical Viewer State
+  ScanPlane _activeScanPlane = ScanPlane.axial;
+  WindowPreset _activeWindowPreset = WindowPreset.brain;
+  bool _isCinePlaying = false;
+  bool _showCalipers = false;
+  bool _showLandmarks = true;
+  bool _isInvertedLUT = false;
+  Offset _crosshairPos = const Offset(0.5, 0.5);
+  int _currentSlice = 14;
+  final int _totalSlices = 28;
+
   int get currentNavigationIndex => _currentNavigationIndex;
   ModalityType get selectedModality => _selectedModality;
   BrainRegion get selectedBrainRegion => _selectedBrainRegion;
@@ -41,11 +69,38 @@ class AppStateService extends ChangeNotifier {
   Map<String, String> get technicianDecisions => _technicianDecisions;
   Map<String, String> get caseQuizAnswers => _caseQuizAnswers;
 
+  // Language
+  AppLanguage get currentLanguage => LocalizationService().currentLanguage;
+  bool get isThai => LocalizationService().isThai;
+
+  // Viewer Getters
+  ScanPlane get activeScanPlane => _activeScanPlane;
+  WindowPreset get activeWindowPreset => _activeWindowPreset;
+  bool get isCinePlaying => _isCinePlaying;
+  bool get showCalipers => _showCalipers;
+  bool get showLandmarks => _showLandmarks;
+  bool get isInvertedLUT => _isInvertedLUT;
+  Offset get crosshairPos => _crosshairPos;
+  int get currentSlice => _currentSlice;
+  int get totalSlices => _totalSlices;
+
   ImagingModality get currentModalityInfo {
     return ModalitiesData.modalities.firstWhere(
       (m) => m.type == _selectedModality,
       orElse: () => ModalitiesData.modalities.first,
     );
+  }
+
+  void toggleLanguage() {
+    LocalizationService().toggleLanguage();
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void setLanguage(AppLanguage lang) {
+    LocalizationService().setLanguage(lang);
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
   }
 
   void setNavigationIndex(int index) {
@@ -65,6 +120,52 @@ class AppStateService extends ChangeNotifier {
   void setSelectedBrainRegion(BrainRegion region) {
     _selectedBrainRegion = region;
     SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void setScanPlane(ScanPlane plane) {
+    _activeScanPlane = plane;
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void setWindowPreset(WindowPreset preset) {
+    _activeWindowPreset = preset;
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void setSlice(int slice) {
+    _currentSlice = slice.clamp(1, _totalSlices);
+    notifyListeners();
+  }
+
+  void toggleCinePlaying() {
+    _isCinePlaying = !_isCinePlaying;
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void toggleCalipers() {
+    _showCalipers = !_showCalipers;
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void toggleLandmarks() {
+    _showLandmarks = !_showLandmarks;
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void toggleInvertedLUT() {
+    _isInvertedLUT = !_isInvertedLUT;
+    SoundService().playSound(SoundEffect.uiClick);
+    notifyListeners();
+  }
+
+  void setCrosshairPos(Offset pos) {
+    _crosshairPos = Offset(pos.dx.clamp(0.05, 0.95), pos.dy.clamp(0.05, 0.95));
     notifyListeners();
   }
 

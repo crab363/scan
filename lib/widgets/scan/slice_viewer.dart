@@ -1,11 +1,14 @@
-import 'dart:math' as math;
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/imaging_modality.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../services/app_state_service.dart';
+import '../../services/localization_service.dart';
 import '../../services/audio_service.dart';
 import '../common/glass_panel.dart';
 import '../common/glowing_button.dart';
+import 'realistic_scan_painter.dart';
 
 class SliceViewer extends StatefulWidget {
   final ImagingModality modality;
@@ -15,7 +18,7 @@ class SliceViewer extends StatefulWidget {
   const SliceViewer({
     super.key,
     required this.modality,
-    this.title = 'RECONSTRUCTED DIAGNOSTIC SLICES',
+    this.title = 'MULTI-SLICE DIAGNOSTIC WORKSTATION',
     this.onEnterVisualMode,
   });
 
@@ -26,62 +29,185 @@ class SliceViewer extends StatefulWidget {
 class _SliceViewerState extends State<SliceViewer> {
   int _currentSlice = 14;
   final int _totalSlices = 28;
-  double _windowWidth = 100.0; // Contrast
-  double _windowLevel = 50.0; // Brightness
+  ScanPlane _currentPlane = ScanPlane.axial;
+  WindowPreset _activeWindowPreset = WindowPreset.brain;
+  double _windowWidth = 100.0;
+  double _windowLevel = 50.0;
   bool _isInvertedLUT = false;
   bool _showCalipers = false;
-  Offset _crosshairPos = const Offset(0.5, 0.5);
+  bool _showLandmarks = true;
+  bool _isCinePlaying = false;
+  Timer? _cineTimer;
+  Offset _crosshairPos = const Offset(0.35, 0.38);
+  TissueDensityInfo? _sampledDensity;
+
+  @override
+  void initState() {
+    super.initState();
+    _sampleAtCurrentPos();
+  }
+
+  @override
+  void dispose() {
+    _cineTimer?.cancel();
+    super.dispose();
+  }
+
+  void _sampleAtCurrentPos() {
+    _sampledDensity = RealisticScanPainter.sampleTissueDensity(
+      pos: _crosshairPos,
+      modality: widget.modality.type,
+      plane: _currentPlane,
+      sliceIndex: _currentSlice,
+      totalSlices: _totalSlices,
+    );
+  }
+
+  void _toggleCine() {
+    setState(() {
+      _isCinePlaying = !_isCinePlaying;
+    });
+    SoundService().playSound(SoundEffect.uiClick);
+
+    if (_isCinePlaying) {
+      _cineTimer?.cancel();
+      _cineTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+        if (!mounted) return;
+        setState(() {
+          _currentSlice++;
+          if (_currentSlice > _totalSlices) {
+            _currentSlice = 1;
+          }
+          _sampleAtCurrentPos();
+        });
+      });
+    } else {
+      _cineTimer?.cancel();
+    }
+  }
+
+  void _applyWindowPreset(WindowPreset preset) {
+    setState(() {
+      _activeWindowPreset = preset;
+      switch (preset) {
+        case WindowPreset.brain:
+          _windowWidth = 80.0;
+          _windowLevel = 40.0;
+          break;
+        case WindowPreset.stroke:
+          _windowWidth = 30.0;
+          _windowLevel = 35.0;
+          break;
+        case WindowPreset.subdural:
+          _windowWidth = 150.0;
+          _windowLevel = 75.0;
+          break;
+        case WindowPreset.bone:
+          _windowWidth = 200.0;
+          _windowLevel = 80.0;
+          break;
+        case WindowPreset.softTissue:
+          _windowWidth = 120.0;
+          _windowLevel = 45.0;
+          break;
+        case WindowPreset.lung:
+          _windowWidth = 180.0;
+          _windowLevel = 20.0;
+          break;
+        case WindowPreset.custom:
+          break;
+      }
+    });
+    SoundService().playSound(SoundEffect.uiClick);
+  }
 
   @override
   Widget build(BuildContext context) {
     final color = widget.modality.accentColor;
+    final isTh = LocalizationService().isThai;
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 12 : 18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Bar
+          // Header Bar with Quick Action Tools
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'MULTI-SLICE DIAGNOSTIC WORKSTATION',
-                    style: AppTypography.hudLabel.copyWith(color: color),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.title,
-                    style: AppTypography.titleMedium.copyWith(fontSize: 18),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'workstation_title'.tr,
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: isMobile ? 9 : 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.title,
+                      style: AppTypography.titleMedium.copyWith(fontSize: isMobile ? 14 : 17),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-              Row(
+              Wrap(
+                spacing: 4,
                 children: [
+                  // Cine Auto-Play Button
                   IconButton(
-                    tooltip: 'Invert Grayscale LUT (Negative)',
+                    tooltip: 'cine_loop'.tr,
                     icon: Icon(
-                      _isInvertedLUT ? Icons.contrast_rounded : Icons.invert_colors_rounded,
-                      color: _isInvertedLUT ? AppColors.amber : AppColors.textSecondary,
+                      _isCinePlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
+                      color: _isCinePlaying ? AppColors.emerald : AppColors.textSecondary,
+                      size: isMobile ? 20 : 24,
+                    ),
+                    onPressed: _toggleCine,
+                  ),
+                  // Landmarks Toggle
+                  IconButton(
+                    tooltip: 'landmark_overlay'.tr,
+                    icon: Icon(
+                      Icons.place_rounded,
+                      color: _showLandmarks ? AppColors.amber : AppColors.textSecondary,
+                      size: isMobile ? 20 : 24,
                     ),
                     onPressed: () {
-                      setState(() => _isInvertedLUT = !_isInvertedLUT);
+                      setState(() => _showLandmarks = !_showLandmarks);
                       SoundService().playSound(SoundEffect.uiClick);
                     },
                   ),
+                  // Caliper Measurement
                   IconButton(
-                    tooltip: 'Toggle Measurement Calipers',
+                    tooltip: 'caliper_measure'.tr,
                     icon: Icon(
                       Icons.straighten_rounded,
                       color: _showCalipers ? color : AppColors.textSecondary,
+                      size: isMobile ? 20 : 24,
                     ),
                     onPressed: () {
                       setState(() => _showCalipers = !_showCalipers);
+                      SoundService().playSound(SoundEffect.uiClick);
+                    },
+                  ),
+                  // Invert LUT
+                  IconButton(
+                    tooltip: 'invert_lut'.tr,
+                    icon: Icon(
+                      _isInvertedLUT ? Icons.contrast_rounded : Icons.invert_colors_rounded,
+                      color: _isInvertedLUT ? AppColors.amber : AppColors.textSecondary,
+                      size: isMobile ? 20 : 24,
+                    ),
+                    onPressed: () {
+                      setState(() => _isInvertedLUT = !_isInvertedLUT);
                       SoundService().playSound(SoundEffect.uiClick);
                     },
                   ),
@@ -89,14 +215,26 @@ class _SliceViewerState extends State<SliceViewer> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Central Medical Slice Visualizer Canvas
+          // Multiplanar View Selector (Axial / Sagittal / Coronal)
+          Row(
+            children: [
+              _buildPlaneChip(ScanPlane.axial, 'plane_axial'.tr, color),
+              const SizedBox(width: 8),
+              _buildPlaneChip(ScanPlane.sagittal, 'plane_sagittal'.tr, color),
+              const SizedBox(width: 8),
+              _buildPlaneChip(ScanPlane.coronal, 'plane_coronal'.tr, color),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Central Medical Canvas
           Container(
-            height: 280,
+            height: isMobile ? 260 : 310,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: _isInvertedLUT ? const Color(0xFFF0F4F8) : const Color(0xFF03060E),
+              color: _isInvertedLUT ? const Color(0xFFF1F5F9) : const Color(0xFF030509),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: color.withOpacity(0.4)),
             ),
@@ -104,83 +242,77 @@ class _SliceViewerState extends State<SliceViewer> {
               borderRadius: BorderRadius.circular(12),
               child: Stack(
                 children: [
-                  // Slice Painter
+                  // Realistic Scan Painter
                   Positioned.fill(
                     child: CustomPaint(
-                      painter: _MedicalSlicePainter(
+                      painter: RealisticScanPainter(
                         sliceIndex: _currentSlice,
                         totalSlices: _totalSlices,
                         modalityType: widget.modality.type,
+                        scanPlane: _currentPlane,
+                        windowPreset: _activeWindowPreset,
                         windowWidth: _windowWidth,
                         windowLevel: _windowLevel,
                         isInverted: _isInvertedLUT,
                         accentColor: color,
                         crosshairPos: _crosshairPos,
                         showCalipers: _showCalipers,
+                        showLandmarks: _showLandmarks,
                       ),
                     ),
                   ),
 
-                  // Interactive Crosshair Touch Target
+                  // Interactive Drag Probe Listener
                   Positioned.fill(
                     child: GestureDetector(
-                      onPanUpdate: (details) {
-                        final box = context.findRenderObject() as RenderBox?;
-                        if (box != null) {
-                          setState(() {
-                            final local = details.localPosition;
-                            _crosshairPos = Offset(
-                              (local.dx / 320).clamp(0.1, 0.9),
-                              (local.dy / 280).clamp(0.1, 0.9),
-                            );
-                          });
-                        }
-                      },
+                      onPanDown: (details) => _updateCrosshair(details.localPosition, context),
+                      onPanUpdate: (details) => _updateCrosshair(details.localPosition, context),
                     ),
                   ),
 
-                  // Overlay Workstation Telemetry Labels
+                  // DICOM Telemetry Overlays (Top Left)
                   Positioned(
                     top: 10,
                     left: 12,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('CASE: 024-MRI', style: AppTypography.hudLabel.copyWith(fontSize: 10, color: color)),
-                        Text('AXIAL T2-FSE', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textSecondary)),
-                        Text('THK: 4.0mm / SP: 1.0mm', style: AppTypography.telemetryCode.copyWith(fontSize: 9)),
+                        Text('PACSCore v4.2 • ${_currentPlane.name.toUpperCase()}', style: AppTypography.hudLabel.copyWith(fontSize: 9.5, color: color)),
+                        Text('ZOOM: 100% | MATRIX: 512x512', style: AppTypography.telemetryCode.copyWith(fontSize: 8.5)),
+                        Text('THK: 3.0mm | SP: 0.5mm', style: AppTypography.telemetryCode.copyWith(fontSize: 8.5)),
                       ],
                     ),
                   ),
 
+                  // DICOM Telemetry Overlays (Top Right)
                   Positioned(
                     top: 10,
                     right: 12,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('WW: ${_windowWidth.toInt()} | WL: ${_windowLevel.toInt()}', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: color)),
+                        Text('WW: ${_windowWidth.toInt()} | WL: ${_windowLevel.toInt()}', style: AppTypography.hudLabel.copyWith(fontSize: 9.5, color: color)),
                         Text('SLICE: $_currentSlice / $_totalSlices', style: AppTypography.hudValue.copyWith(fontSize: 11, color: Colors.white)),
-                        Text('FOV: 230mm', style: AppTypography.telemetryCode.copyWith(fontSize: 9)),
+                        Text(_activeWindowPreset.name.toUpperCase(), style: AppTypography.telemetryCode.copyWith(fontSize: 8.5, color: AppColors.amber)),
                       ],
                     ),
                   ),
 
-                  // Anatomical Directional Markers
+                  // Directional Markers
                   Positioned(
-                    top: 8,
+                    top: 6,
                     left: 0,
                     right: 0,
                     child: Center(
-                      child: Text('A (ANTERIOR)', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: color.withOpacity(0.7))),
+                      child: Text(_currentPlane == ScanPlane.sagittal ? 'S (SUPERIOR)' : 'A (ANTERIOR)', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: color.withOpacity(0.7))),
                     ),
                   ),
                   Positioned(
-                    bottom: 8,
+                    bottom: 6,
                     left: 0,
                     right: 0,
                     child: Center(
-                      child: Text('P (POSTERIOR)', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: color.withOpacity(0.7))),
+                      child: Text(_currentPlane == ScanPlane.sagittal ? 'I (INFERIOR)' : 'P (POSTERIOR)', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: color.withOpacity(0.7))),
                     ),
                   ),
                   Positioned(
@@ -188,7 +320,7 @@ class _SliceViewerState extends State<SliceViewer> {
                     top: 0,
                     bottom: 0,
                     child: Center(
-                      child: Text('R', style: AppTypography.hudLabel.copyWith(fontSize: 11, color: color.withOpacity(0.7))),
+                      child: Text(_currentPlane == ScanPlane.sagittal ? 'A' : 'R', style: AppTypography.hudLabel.copyWith(fontSize: 10.5, color: color.withOpacity(0.7))),
                     ),
                   ),
                   Positioned(
@@ -196,26 +328,90 @@ class _SliceViewerState extends State<SliceViewer> {
                     top: 0,
                     bottom: 0,
                     child: Center(
-                      child: Text('L', style: AppTypography.hudLabel.copyWith(fontSize: 11, color: color.withOpacity(0.7))),
+                      child: Text(_currentPlane == ScanPlane.sagittal ? 'P' : 'L', style: AppTypography.hudLabel.copyWith(fontSize: 10.5, color: color.withOpacity(0.7))),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+
+          // Interactive Real-Time Hounsfield Unit (HU) Probe HUD Panel
+          if (_sampledDensity != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _sampledDensity!.indicatorColor.withOpacity(0.5)),
+                boxShadow: [
+                  BoxShadow(color: _sampledDensity!.indicatorColor.withOpacity(0.15), blurRadius: 8),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _sampledDensity!.indicatorColor.withOpacity(0.2),
+                      border: Border.all(color: _sampledDensity!.indicatorColor),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.colorize_rounded, color: _sampledDensity!.indicatorColor, size: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              isTh ? _sampledDensity!.tissueNameTh : _sampledDensity!.tissueNameEn,
+                              style: AppTypography.titleMedium.copyWith(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _sampledDensity!.indicatorColor.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${_sampledDensity!.hounsfieldUnits.toInt()} HU',
+                                style: AppTypography.hudValue.copyWith(fontSize: 11, color: _sampledDensity!.indicatorColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isTh ? _sampledDensity!.clinicalSignificanceTh : _sampledDensity!.clinicalSignificanceEn,
+                          style: AppTypography.bodySmall.copyWith(fontSize: 10.5, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
 
           // Multi-Slice Scrubber Slider
           Row(
             children: [
-              Text('SLICE DEPTH', style: AppTypography.hudLabel.copyWith(fontSize: 10, color: AppColors.textMuted)),
+              Text('slice_depth'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 9.5, color: AppColors.textMuted)),
               const SizedBox(width: 10),
               Expanded(
                 child: SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     activeTrackColor: color,
                     thumbColor: color,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                     trackHeight: 3,
                   ),
                   child: Slider(
@@ -223,79 +419,53 @@ class _SliceViewerState extends State<SliceViewer> {
                     min: 1,
                     max: _totalSlices.toDouble(),
                     divisions: _totalSlices - 1,
-                    label: 'Slice $_currentSlice',
                     onChanged: (val) {
-                      setState(() => _currentSlice = val.toInt());
+                      setState(() {
+                        _currentSlice = val.toInt();
+                        _sampleAtCurrentPos();
+                      });
                     },
                   ),
                 ),
               ),
-              Text('$_currentSlice / $_totalSlices', style: AppTypography.hudValue.copyWith(fontSize: 12, color: color)),
+              Text('$_currentSlice / $_totalSlices', style: AppTypography.hudValue.copyWith(fontSize: 11.5, color: color)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          // Window / Level Controls
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('WINDOW WIDTH (CONTRAST)', style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted)),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: color.withOpacity(0.8),
-                        thumbColor: color,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                        trackHeight: 2,
-                      ),
-                      child: Slider(
-                        value: _windowWidth,
-                        min: 20.0,
-                        max: 200.0,
-                        onChanged: (val) => setState(() => _windowWidth = val),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('WINDOW LEVEL (BRIGHTNESS)', style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.textMuted)),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: color.withOpacity(0.8),
-                        thumbColor: color,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                        trackHeight: 2,
-                      ),
-                      child: Slider(
-                        value: _windowLevel,
-                        min: 0.0,
-                        max: 100.0,
-                        onChanged: (val) => setState(() => _windowLevel = val),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          // Window Preset Chips Row
+          Text('window_presets'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildWindowPresetChip(WindowPreset.brain, 'win_brain'.tr, color),
+                const SizedBox(width: 6),
+                _buildWindowPresetChip(WindowPreset.stroke, 'win_stroke'.tr, color),
+                const SizedBox(width: 6),
+                _buildWindowPresetChip(WindowPreset.subdural, 'win_subdural'.tr, color),
+                const SizedBox(width: 6),
+                _buildWindowPresetChip(WindowPreset.bone, 'win_bone'.tr, color),
+                const SizedBox(width: 6),
+                _buildWindowPresetChip(WindowPreset.softTissue, 'win_soft_tissue'.tr, color),
+                const SizedBox(width: 6),
+                _buildWindowPresetChip(WindowPreset.lung, 'win_lung'.tr, color),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Bottom Action: Enter Visual Mode
+          // Enter Visual Mode Button
           if (widget.onEnterVisualMode != null)
             Align(
               alignment: Alignment.centerRight,
               child: GlowingButton(
-                text: 'ENTER CONCERT VISUAL MODE',
+                text: 'enter_visual_mode'.tr,
                 icon: Icons.auto_awesome_motion_rounded,
                 primaryColor: AppColors.magenta,
                 secondaryColor: AppColors.violet,
+                height: 38,
                 onPressed: widget.onEnterVisualMode!,
               ),
             ),
@@ -303,140 +473,64 @@ class _SliceViewerState extends State<SliceViewer> {
       ),
     );
   }
-}
 
-class _MedicalSlicePainter extends CustomPainter {
-  final int sliceIndex;
-  final int totalSlices;
-  final ModalityType modalityType;
-  final double windowWidth;
-  final double windowLevel;
-  final bool isInverted;
-  final Color accentColor;
-  final Offset crosshairPos;
-  final bool showCalipers;
-
-  _MedicalSlicePainter({
-    required this.sliceIndex,
-    required this.totalSlices,
-    required this.modalityType,
-    required this.windowWidth,
-    required this.windowLevel,
-    required this.isInverted,
-    required this.accentColor,
-    required this.crosshairPos,
-    required this.showCalipers,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-
-    // Slice relative depth (0.0 to 1.0)
-    final depth = sliceIndex / totalSlices;
-    final baseRadius = math.min(size.width, size.height) * 0.36;
-
-    // Calibrate brightness & contrast
-    final contrastMult = windowWidth / 100.0;
-
-    final brainParenchymaPaint = Paint()
-      ..color = isInverted ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B).withOpacity((0.9 * contrastMult).clamp(0.1, 1.0))
-      ..style = PaintingStyle.fill;
-
-    final skullPaint = Paint()
-      ..color = isInverted ? const Color(0xFF0F172A) : Colors.white.withOpacity(0.9)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = modalityType == ModalityType.ct ? 5.0 : 2.5;
-
-    // 1. Calvarium / Skull Oval
-    final skullPath = Path();
-    final skullW = (baseRadius * 2.0) * (0.85 + math.sin(depth * math.pi) * 0.25);
-    final skullH = (baseRadius * 2.4) * (0.85 + math.sin(depth * math.pi) * 0.25);
-    skullPath.addOval(Rect.fromCenter(center: Offset(cx, cy), width: skullW, height: skullH));
-
-    canvas.drawPath(skullPath, brainParenchymaPaint);
-    canvas.drawPath(skullPath, skullPaint);
-
-    // 2. Gray / White Matter Sulcal Undulations
-    final sulciPaint = Paint()
-      ..color = isInverted ? const Color(0xFF94A3B8) : const Color(0xFF475569).withOpacity(0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    for (int i = 0; i < 8; i++) {
-      final angle = (i / 8) * 2 * math.pi;
-      final sx = cx + math.cos(angle) * (skullW * 0.42);
-      final sy = cy + math.sin(angle) * (skullH * 0.42);
-      final ex = cx + math.cos(angle) * (skullW * 0.28);
-      final ey = cy + math.sin(angle) * (skullH * 0.28);
-      canvas.drawLine(Offset(sx, sy), Offset(ex, ey), sulciPaint);
-    }
-
-    // 3. Ventricles (Shape morphs based on slice depth)
-    final ventPaint = Paint()
-      ..color = isInverted ? Colors.white : (modalityType == ModalityType.mri ? const Color(0xFF020617) : const Color(0xFF0F172A))
-      ..style = PaintingStyle.fill;
-
-    final ventStroke = Paint()
-      ..color = accentColor.withOpacity(0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-
-    final ventSize = math.sin(depth * math.pi) * 35.0;
-    if (ventSize > 5.0) {
-      // Left Frontal Horn
-      final leftHorn = Path()
-        ..moveTo(cx - 6, cy - 20)
-        ..cubicTo(cx - 24, cy - 10, cx - 18, cy + 20, cx - 4, cy + 10)
-        ..close();
-      canvas.drawPath(leftHorn, ventPaint);
-      canvas.drawPath(leftHorn, ventStroke);
-
-      // Right Frontal Horn
-      final rightHorn = Path()
-        ..moveTo(cx + 6, cy - 20)
-        ..cubicTo(cx + 24, cy - 10, cx + 18, cy + 20, cx + 4, cy + 10)
-        ..close();
-      canvas.drawPath(rightHorn, ventPaint);
-      canvas.drawPath(rightHorn, ventStroke);
-    }
-
-    // 4. Interactive Crosshair Marker
-    final chX = crosshairPos.dx * size.width;
-    final chY = crosshairPos.dy * size.height;
-
-    final crossPaint = Paint()
-      ..color = accentColor.withOpacity(0.8)
-      ..strokeWidth = 1.0;
-
-    canvas.drawLine(Offset(chX - 12, chY), Offset(chX + 12, chY), crossPaint);
-    canvas.drawLine(Offset(chX, chY - 12), Offset(chX, chY + 12), crossPaint);
-
-    // 5. Measurement Caliper Overlay
-    if (showCalipers) {
-      final calPaint = Paint()
-        ..color = AppColors.amber
-        ..strokeWidth = 1.5;
-
-      final p1 = Offset(cx - 40, cy - 15);
-      final p2 = Offset(cx + 40, cy - 15);
-
-      canvas.drawLine(p1, p2, calPaint);
-      canvas.drawLine(Offset(p1.dx, p1.dy - 4), Offset(p1.dx, p1.dy + 4), calPaint);
-      canvas.drawLine(Offset(p2.dx, p2.dy - 4), Offset(p2.dx, p2.dy + 4), calPaint);
-
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: '28.4 mm',
-          style: AppTypography.hudLabel.copyWith(color: AppColors.amber, fontSize: 10),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      textPainter.paint(canvas, Offset(cx - 20, cy - 32));
-    }
+  void _updateCrosshair(Offset localPos, BuildContext context) {
+    setState(() {
+      _crosshairPos = Offset(
+        (localPos.dx / 320).clamp(0.05, 0.95),
+        (localPos.dy / 280).clamp(0.05, 0.95),
+      );
+      _sampleAtCurrentPos();
+    });
   }
 
-  @override
-  bool shouldRepaint(covariant _MedicalSlicePainter oldDelegate) => true;
+  Widget _buildPlaneChip(ScanPlane plane, String label, Color accent) {
+    final isSelected = _currentPlane == plane;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: AppTypography.hudLabel.copyWith(
+          color: isSelected ? AppColors.background : accent,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: accent,
+      backgroundColor: AppColors.surface,
+      side: BorderSide(color: isSelected ? accent : AppColors.cardGlassBorder),
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _currentPlane = plane;
+            _sampleAtCurrentPos();
+          });
+          SoundService().playSound(SoundEffect.uiClick);
+        }
+      },
+    );
+  }
+
+  Widget _buildWindowPresetChip(WindowPreset preset, String label, Color accent) {
+    final isSelected = _activeWindowPreset == preset;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: AppTypography.hudLabel.copyWith(
+          color: isSelected ? AppColors.background : AppColors.textSecondary,
+          fontSize: 8.5,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: accent,
+      backgroundColor: AppColors.surfaceHighlight.withOpacity(0.4),
+      side: BorderSide(color: isSelected ? accent : AppColors.cardGlassBorder),
+      onSelected: (selected) {
+        if (selected) {
+          _applyWindowPreset(preset);
+        }
+      },
+    );
+  }
 }

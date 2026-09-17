@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/case_file.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../services/localization_service.dart';
 import '../common/glass_panel.dart';
 
 class CaseObservationQuiz extends StatefulWidget {
@@ -39,6 +40,7 @@ class _CaseObservationQuizState extends State<CaseObservationQuiz> {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = LocalizationService().isThai;
     final hasAnswered = _selectedChoiceId != null;
     final chosenChoice = hasAnswered
         ? widget.caseFile.observationChoices.firstWhere(
@@ -70,11 +72,11 @@ class _CaseObservationQuizState extends State<CaseObservationQuiz> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('DIAGNOSTIC OBSERVATION CHALLENGE', style: AppTypography.hudLabel),
+                    Text('quiz_header'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 10)),
                     const SizedBox(height: 2),
                     Text(
                       widget.caseFile.quizQuestion,
-                      style: AppTypography.titleMedium.copyWith(fontSize: 15),
+                      style: AppTypography.titleMedium.copyWith(fontSize: 14.5),
                     ),
                   ],
                 ),
@@ -140,6 +142,7 @@ class _CaseObservationQuizState extends State<CaseObservationQuiz> {
                             style: AppTypography.bodySmall.copyWith(
                               color: isSelected ? Colors.white : AppColors.textPrimary,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -167,7 +170,9 @@ class _CaseObservationQuizState extends State<CaseObservationQuiz> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    chosenChoice.isCorrect ? 'ACCURATE OBSERVATION' : 'EDUCATIONAL FEEDBACK',
+                    chosenChoice.isCorrect
+                        ? (isTh ? 'การวิเคราะห์ภาพถูกต้องแม่นยำ (CORRECT)' : 'ACCURATE OBSERVATION')
+                        : (isTh ? 'ข้อเสนอแนะและคำอธิบายทางการแพทย์ (FEEDBACK)' : 'EDUCATIONAL FEEDBACK'),
                     style: AppTypography.hudLabel.copyWith(
                       color: chosenChoice.isCorrect ? AppColors.emerald : AppColors.alertRed,
                       fontSize: 10,
@@ -176,21 +181,21 @@ class _CaseObservationQuizState extends State<CaseObservationQuiz> {
                   const SizedBox(height: 4),
                   Text(
                     chosenChoice.explanation,
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontSize: 12),
+                    style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontSize: 12, height: 1.4),
                   ),
                   const SizedBox(height: 10),
                   const Divider(color: Color(0x1F00F2FE)),
                   const SizedBox(height: 8),
-                  Text('DEFINITIVE RADIOLOGIC FINDINGS:', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.cyan)),
+                  Text('findings_header'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.cyan)),
                   const SizedBox(height: 2),
                   Text(
                     widget.caseFile.definitiveFindings,
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                    style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     widget.caseFile.radiologicExplanation,
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11, height: 1.4),
                   ),
                 ],
               ),

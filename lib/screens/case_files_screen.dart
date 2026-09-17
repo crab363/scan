@@ -6,6 +6,7 @@ import '../data/modalities_data.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../services/app_state_service.dart';
+import '../services/localization_service.dart';
 import '../services/audio_service.dart';
 import '../widgets/common/hud_header.dart';
 import '../widgets/common/glass_panel.dart';
@@ -34,6 +35,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateService();
+    final isTh = LocalizationService().isThai;
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
     final isMobile = size.width < 600;
@@ -63,9 +65,9 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                 children: [
                   // Header
                   HUDHeader(
-                    title: 'DIAGNOSTIC CASE FILES ARCHIVE',
-                    subtitle: 'Clinical histories, multi-slice scans & diagnostic radiologic anomalies',
-                    tag: 'PACS REPOSITORY',
+                    title: 'case_files_title'.tr,
+                    subtitle: 'case_files_subtitle'.tr,
+                    tag: 'pacs_repository'.tr,
                     accentColor: AppColors.violet,
                     trailing: Wrap(
                       spacing: 8,
@@ -80,12 +82,12 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                             border: Border.all(color: AppColors.violet.withOpacity(0.5)),
                           ),
                           child: Text(
-                            'SOLVED: $answeredCount / ${CaseFilesData.cases.length}',
+                            '${'solved_cases'.tr}: $answeredCount / ${CaseFilesData.cases.length}',
                             style: AppTypography.hudLabel.copyWith(color: AppColors.violet, fontSize: 10),
                           ),
                         ),
                         GlowingButton(
-                          text: isMobile ? 'RANDOM' : 'RANDOM CASE (สุ่มเคส)',
+                          text: isMobile ? (isTh ? 'สุ่ม' : 'RANDOM') : 'random_case'.tr,
                           icon: Icons.shuffle_rounded,
                           primaryColor: AppColors.violet,
                           secondaryColor: AppColors.magenta,
@@ -104,16 +106,16 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip('ALL (${CaseFilesData.cases.length})', null, AppColors.violet),
-                        _buildFilterChip('MRI BRAIN & SPINE', ModalityType.mri, AppColors.cyan),
-                        _buildFilterChip('CT CHEST & ABDOMEN', ModalityType.ct, AppColors.emerald),
-                        _buildFilterChip('DIGITAL X-RAY', ModalityType.xray, AppColors.violet),
+                        _buildFilterChip('${'all_modalities'.tr} (${CaseFilesData.cases.length})', null, AppColors.violet),
+                        _buildFilterChip('mri_cases'.tr, ModalityType.mri, AppColors.cyan),
+                        _buildFilterChip('ct_cases'.tr, ModalityType.ct, AppColors.emerald),
+                        _buildFilterChip('xray_cases'.tr, ModalityType.xray, AppColors.violet),
                       ],
                     ),
                   ),
                   const SizedBox(height: 10),
 
-                  // Case List Carousel / Horizontal Selector
+                  // Case List Carousel
                   SizedBox(
                     height: 124,
                     child: ListView.separated(
@@ -151,7 +153,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                               Expanded(
                                 flex: 4,
                                 child: SingleChildScrollView(
-                                  child: _buildPatientHistoryPanel(activeCase),
+                                  child: _buildPatientHistoryPanel(activeCase, isTh),
                                 ),
                               ),
                               const SizedBox(width: 18),
@@ -183,7 +185,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                         : SingleChildScrollView(
                             child: Column(
                               children: [
-                                _buildPatientHistoryPanel(activeCase),
+                                _buildPatientHistoryPanel(activeCase, isTh),
                                 const SizedBox(height: 14),
                                 SliceViewer(
                                   modality: _getModalityInfo(activeCase.modality),
@@ -239,7 +241,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
     );
   }
 
-  Widget _buildPatientHistoryPanel(CaseFile caseFile) {
+  Widget _buildPatientHistoryPanel(CaseFile caseFile, bool isTh) {
     return GlassPanel(
       borderColor: AppColors.violet.withOpacity(0.4),
       padding: const EdgeInsets.all(18),
@@ -273,25 +275,28 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          Text(caseFile.title, style: AppTypography.titleMedium.copyWith(fontSize: 17)),
+          Text(caseFile.title, style: AppTypography.titleMedium.copyWith(fontSize: 16)),
           const SizedBox(height: 4),
           Text(
-            'Patient: ${caseFile.age} Years Old • ${caseFile.gender}',
+            '${isTh ? 'ผู้ป่วย' : 'Patient'}: ${caseFile.age} ${isTh ? 'ปี' : 'Years Old'} • ${caseFile.gender}',
             style: AppTypography.hudValue.copyWith(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
 
           // Chief Complaint
-          Text('CHIEF COMPLAINT', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+          Text(
+            isTh ? 'อาการสำคัญที่มาโรงพยาบาล (CHIEF COMPLAINT)' : 'CHIEF COMPLAINT',
+            style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 3),
           Text(
             caseFile.chiefComplaint,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, height: 1.35, fontSize: 12),
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, height: 1.4, fontSize: 12),
           ),
           const SizedBox(height: 12),
 
           // Symptoms List
-          Text('CLINICAL PRESENTATION & SYMPTOMS', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+          Text('symptoms_header'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
           const SizedBox(height: 5),
           ...caseFile.symptoms.map((sym) {
             return Padding(
@@ -302,7 +307,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                   const Icon(Icons.arrow_right_rounded, size: 16, color: AppColors.violet),
                   const SizedBox(width: 4),
                   Expanded(
-                    child: Text(sym, style: AppTypography.bodySmall.copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                    child: Text(sym, style: AppTypography.bodySmall.copyWith(fontSize: 11.5, color: AppColors.textSecondary)),
                   ),
                 ],
               ),
@@ -311,7 +316,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
           const SizedBox(height: 12),
 
           // Medical History
-          Text('RELEVANT MEDICAL HISTORY', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+          Text('medical_history_header'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
           const SizedBox(height: 5),
           ...caseFile.medicalHistory.map((hist) {
             return Padding(
@@ -322,7 +327,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                   const Icon(Icons.history_edu_rounded, size: 14, color: AppColors.textMuted),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(hist, style: AppTypography.bodySmall.copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                    child: Text(hist, style: AppTypography.bodySmall.copyWith(fontSize: 11.5, color: AppColors.textSecondary)),
                   ),
                 ],
               ),
@@ -343,9 +348,9 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.school_outlined, size: 14, color: AppColors.amber),
+                    const Icon(Icons.school_outlined, size: 16, color: AppColors.amber),
                     const SizedBox(width: 6),
-                    Text('HIGH-YIELD RADIOLOGIC PEARLS', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.amber)),
+                    Text('pearls_header'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.amber)),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -354,7 +359,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       '• $pearl',
-                      style: AppTypography.bodySmall.copyWith(fontSize: 10, color: AppColors.textPrimary),
+                      style: AppTypography.bodySmall.copyWith(fontSize: 11, color: AppColors.textPrimary, height: 1.4),
                     ),
                   );
                 }),
@@ -365,7 +370,7 @@ class _CaseFilesScreenState extends State<CaseFilesScreen> {
 
           // Educational Disclaimer
           Text(
-            caseFile.disclaimer,
+            'disclaimer_note'.tr,
             style: AppTypography.bodySmall.copyWith(fontSize: 8.5, color: AppColors.textMuted, fontStyle: FontStyle.italic),
           ),
         ],

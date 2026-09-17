@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/technician_case.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../services/localization_service.dart';
 import '../common/glass_panel.dart';
 
 class TechnicianDecisionCard extends StatefulWidget {
@@ -39,6 +40,7 @@ class _TechnicianDecisionCardState extends State<TechnicianDecisionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isTh = LocalizationService().isThai;
     final hasChosen = _chosenOptionId != null;
     final chosenOption = hasChosen
         ? widget.techCase.options.firstWhere((o) => o.id == _chosenOptionId, orElse: () => widget.techCase.options.first)
@@ -68,11 +70,11 @@ class _TechnicianDecisionCardState extends State<TechnicianDecisionCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('CLINICAL DILEMMA & RADTECH DECISION', style: AppTypography.hudLabel),
+                    Text('dilemma_prompt'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 10)),
                     const SizedBox(height: 2),
                     Text(
                       widget.techCase.dilemmaQuestion,
-                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      style: AppTypography.titleMedium.copyWith(fontSize: 15.5),
                     ),
                   ],
                 ),
@@ -201,10 +203,12 @@ class _TechnicianDecisionCardState extends State<TechnicianDecisionCard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        chosenOption.isOptimal ? 'OPTIMAL CLINICAL ACTION (+${chosenOption.scoreDelta} PTS)' : 'SUBOPTIMAL ACTION (${chosenOption.scoreDelta} PTS)',
+                        chosenOption.isOptimal
+                            ? (isTh ? 'การตัดสินใจที่ถูกต้องและปลอดภัยที่สุด (+${chosenOption.scoreDelta} แต้ม)' : 'OPTIMAL CLINICAL ACTION (+${chosenOption.scoreDelta} PTS)')
+                            : (isTh ? 'การตัดสินใจที่ไม่ถูกต้องตามมาตรฐาน (${chosenOption.scoreDelta} แต้ม)' : 'SUBOPTIMAL ACTION (${chosenOption.scoreDelta} PTS)'),
                         style: AppTypography.hudLabel.copyWith(
                           color: chosenOption.isOptimal ? AppColors.emerald : AppColors.alertRed,
-                          fontSize: 11,
+                          fontSize: 10.5,
                         ),
                       ),
                       Icon(
@@ -217,16 +221,16 @@ class _TechnicianDecisionCardState extends State<TechnicianDecisionCard> {
                   const SizedBox(height: 8),
                   Text(
                     chosenOption.outcomeExplanation,
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontSize: 13),
+                    style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontSize: 12.5, height: 1.4),
                   ),
                   const SizedBox(height: 10),
                   const Divider(color: Color(0x1F00F2FE)),
                   const SizedBox(height: 8),
-                  Text('RADTECH EDUCATIONAL PRINCIPLE:', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.cyan)),
+                  Text('takeaways_header'.tr, style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.cyan)),
                   const SizedBox(height: 2),
                   Text(
                     chosenOption.educationalTakeaway,
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11.5, height: 1.4),
                   ),
                 ],
               ),

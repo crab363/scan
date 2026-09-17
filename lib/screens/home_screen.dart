@@ -1,13 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../services/app_state_service.dart';
+import '../services/localization_service.dart';
 import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../widgets/common/glass_panel.dart';
 import '../widgets/common/glowing_button.dart';
 import '../widgets/common/particle_background.dart';
-import '../widgets/common/waveform_visualizer.dart';
 import '../widgets/common/animated_scan_line.dart';
 import '../widgets/common/audio_equalizer_hud.dart';
 
@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 800;
+    final isTh = LocalizationService().isThai;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -87,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    'SYSTEM VER: 3.4.0 • ONLINE',
+                                    isTh ? 'ระบบปฏิบัติการรังสีวินิจฉัย • ออนไลน์' : 'SYSTEM VER: 3.4.0 • ONLINE',
                                     style: AppTypography.hudLabel.copyWith(fontSize: 9.5),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -99,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           const AudioEqualizerHUD(),
                         ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 24),
 
                       // Main Hero Showcase: Responsive Columns on Desktop, Vertical on Mobile
                       if (isDesktop)
@@ -107,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             // Left Hero Text & CTA
-                            Expanded(flex: 5, child: _buildHeroContent()),
+                            Expanded(flex: 5, child: _buildHeroContent(isTh)),
                             const SizedBox(width: 40),
                             // Right Holographic 3D Medical Scan Visualization
                             Expanded(flex: 5, child: _buildHolographicBrainScan()),
@@ -117,26 +118,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         Column(
                           children: [
                             _buildHolographicBrainScan(),
-                            const SizedBox(height: 30),
-                            _buildHeroContent(),
+                            const SizedBox(height: 24),
+                            _buildHeroContent(isTh),
                           ],
                         ),
 
-                      const SizedBox(height: 50),
+                      const SizedBox(height: 40),
 
                       // Feature Highlights Pill Badges
-                      _buildFeatureBadges(),
+                      _buildFeatureBadges(isTh),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 24),
                       Text(
-                        'EXPLORE • SCAN • DISCOVER',
+                        isTh ? 'สำรวจ • สแกน • วินิจฉัย • ค้นพบ' : 'EXPLORE • SCAN • DISCOVER',
                         style: AppTypography.hudLabel.copyWith(
                           color: AppColors.textMuted,
                           fontSize: 11,
-                          letterSpacing: 4.0,
+                          letterSpacing: 3.0,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -148,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildHeroContent() {
+  Widget _buildHeroContent(bool isTh) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -166,13 +167,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               const Icon(Icons.blur_on_rounded, color: AppColors.cyan, size: 14),
               const SizedBox(width: 6),
               Text(
-                'INTERACTIVE RADIOLOGY EXPERIENCE',
-                style: AppTypography.hudLabel.copyWith(fontSize: 9, letterSpacing: 2.0),
+                isTh ? 'ระบบจำลองรังสีวิทยาทางการแพทย์เชิงโต้ตอบ' : 'INTERACTIVE RADIOLOGY EXPERIENCE',
+                style: AppTypography.hudLabel.copyWith(fontSize: 9, letterSpacing: 1.5),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
         // Hero Main Title
         FittedBox(
@@ -184,60 +185,62 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               'SCANVERSE',
               style: AppTypography.heroTitle.copyWith(
                 color: Colors.white,
-                fontSize: 48,
-                letterSpacing: 6.0,
+                fontSize: 44,
+                letterSpacing: 4.0,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // Subtitle Quote
         Text(
-          '“See what the human eye cannot see.”',
+          isTh ? '“มองเห็นสิ่งที่สายตามนุษย์ไม่อาจมองเห็นด้วยตาเปล่า”' : '“See what the human eye cannot see.”',
           style: AppTypography.titleMedium.copyWith(
             color: AppColors.textCyan,
             fontStyle: FontStyle.italic,
-            fontSize: 18,
-            letterSpacing: 0.8,
+            fontSize: 16,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         // Lead Description
         Text(
-          'An immersive interactive medical imaging and radiologic technology simulator. Explore anatomical layers, operate multi-sequence MRI/CT scans, solve real clinical dilemmas, and transform diagnostic imaging into concert-grade visual art.',
+          isTh
+              ? 'ระบบจำลองการทำงานของเครื่องมือรังสีแพทย์ (MRI, CT, Digital X-Ray) และการตรวจวินิจฉัยโรคเสมือนจริง เรียนรู้หลักฟิสิกส์การสร้างภาพ, ส่องดูโครงสร้างกายวิภาคหลายระนาบ (Axial/Sagittal/Coronal), ทดสอบความหนาแน่นเนื้อเยื่อ Hounsfield Units, วิเคราะห์เคสผู้ป่วยฉุกเฉิน และเปลี่ยนภาพสแกนสู่ทัศนศิลป์แห่งอนาคต'
+              : 'An immersive interactive medical imaging and radiologic technology simulator. Explore anatomical layers, operate multi-sequence MRI/CT scans, sample Hounsfield units, solve real clinical dilemmas, and transform diagnostic imaging into concert-grade visual art.',
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
-            fontSize: 14,
+            fontSize: 13.5,
             height: 1.6,
           ),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 24),
 
         // Enter Button
         Wrap(
-          spacing: 16,
-          runSpacing: 12,
+          spacing: 14,
+          runSpacing: 10,
           children: [
             GlowingButton(
-              text: 'ENTER SCANVERSE',
+              text: isTh ? 'เข้าสู่ห้องสแกน' : 'ENTER SCANVERSE',
               icon: Icons.explore_rounded,
               primaryColor: AppColors.cyan,
               secondaryColor: AppColors.neonTeal,
-              height: 54,
+              height: 48,
               onPressed: () {
                 SoundService().playSound(SoundEffect.laserBeep);
                 widget.onEnterScanverse();
               },
             ),
             GlowingButton(
-              text: 'VISUAL MODE',
+              text: isTh ? 'โหมดภาพศิลป์' : 'VISUAL MODE',
               icon: Icons.auto_awesome_motion_rounded,
               primaryColor: AppColors.magenta,
               secondaryColor: AppColors.violet,
               isSecondary: true,
-              height: 54,
+              height: 48,
               onPressed: () {
                 AppStateService().setNavigationIndex(5);
               },
@@ -250,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildHolographicBrainScan() {
     return Container(
-      height: 360,
+      height: 340,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.surface.withOpacity(0.6),
@@ -274,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               animation: _brainMeshController,
               builder: (context, _) {
                 return CustomPaint(
-                  size: const Size(double.infinity, 360),
+                  size: const Size(double.infinity, 340),
                   painter: _HolographicBrainPainter(
                     time: _brainMeshController.value * 2 * math.pi,
                   ),
@@ -290,48 +293,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
 
-            // Real-time Waveform at Bottom of Card
+            // Telemetry Readouts
             Positioned(
-              bottom: 12,
+              top: 14,
               left: 16,
-              right: 16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('RF FREQUENCY: 127.7 MHz (3.0T LARMOR)', style: AppTypography.hudLabel.copyWith(fontSize: 8)),
-                      Text('PHASE COHERENCE: 99.4%', style: AppTypography.hudLabel.copyWith(fontSize: 8, color: AppColors.emerald)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const WaveformVisualizer(
-                    height: 36,
-                    primaryColor: AppColors.cyan,
-                    secondaryColor: AppColors.emerald,
-                    frequency: 5.0,
-                    amplitude: 14.0,
-                  ),
+                  Text('3.0T MAGNETOM ISOCENTER', style: AppTypography.hudLabel.copyWith(fontSize: 9.5, color: AppColors.cyan)),
+                  Text('AXIAL MULTI-PLANE • REAL-TIME', style: AppTypography.telemetryCode.copyWith(fontSize: 8.5)),
                 ],
               ),
             ),
 
-            // Top Telemetry Tag
             Positioned(
-              top: 14,
-              left: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.background.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.cardGlassBorder),
-                ),
-                child: Text(
-                  'BRAIN VOLUMETRIC MRI • ISO-CENTER',
-                  style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.cyan),
-                ),
+              bottom: 14,
+              right: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('DICOM 3.0 / HU ACCURACY', style: AppTypography.hudLabel.copyWith(fontSize: 9.5, color: AppColors.emerald)),
+                  Text('512x512 MATRIX RECON', style: AppTypography.telemetryCode.copyWith(fontSize: 8.5)),
+                ],
               ),
             ),
           ],
@@ -340,13 +323,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildFeatureBadges() {
+  Widget _buildFeatureBadges(bool isTh) {
     final features = [
-      {'title': 'ANATOMY EXPLORER', 'desc': 'Interactive 3D Lobes & Body Map', 'icon': Icons.accessibility_new_rounded, 'color': AppColors.cyan},
-      {'title': '5-STAGE SCANNER', 'desc': 'MRI • CT • Digital X-Ray', 'icon': Icons.view_in_ar_rounded, 'color': AppColors.emerald},
-      {'title': 'RADTECH WORKSTATION', 'desc': 'Clinical Decision Dilemmas', 'icon': Icons.psychology_rounded, 'color': AppColors.amber},
-      {'title': 'MYSTERY CASES', 'desc': 'Multi-slice Diagnostic Pearls', 'icon': Icons.find_in_page_rounded, 'color': AppColors.violet},
-      {'title': 'CONCERT VISUALS', 'desc': 'Stage-Grade LED Media Canvas', 'icon': Icons.auto_awesome_motion_rounded, 'color': AppColors.magenta},
+      {'icon': Icons.view_in_ar_rounded, 'title': isTh ? 'สแกน 5 ขั้นตอนเสมือนจริง' : '5-Stage Clinical Simulation', 'color': AppColors.cyan},
+      {'icon': Icons.psychology_rounded, 'title': isTh ? 'กายวิภาคหลายระนาบ 3 มิติ' : 'Multiplanar Brain Anatomy', 'color': AppColors.emerald},
+      {'icon': Icons.find_in_page_rounded, 'title': isTh ? 'คลังเคสผู้ป่วยและรอยโรค' : 'Clinical PACS Case Files', 'color': AppColors.violet},
+      {'icon': Icons.colorize_rounded, 'title': isTh ? 'วัดความหนาแน่นเนื้อเยื่อ HU' : 'Real-time HU Density Probe', 'color': AppColors.amber},
     ];
 
     return Wrap(
@@ -354,25 +336,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       runSpacing: 12,
       alignment: WrapAlignment.center,
       children: features.map((f) {
-        final color = f['color'] as Color;
+        final col = f['color'] as Color;
+        final icon = f['icon'] as IconData;
+        final title = f['title'] as String;
 
         return GlassPanel(
-          borderColor: color.withOpacity(0.3),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           borderRadius: 12,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(f['icon'] as IconData, color: color, size: 20),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(f['title'] as String, style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10)),
-                  const SizedBox(height: 2),
-                  Text(f['desc'] as String, style: AppTypography.bodySmall.copyWith(fontSize: 10, color: AppColors.textSecondary)),
-                ],
+              Icon(icon, color: col, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: AppTypography.hudLabel.copyWith(color: AppColors.textPrimary, fontSize: 10.5),
               ),
             ],
           ),
@@ -390,66 +368,44 @@ class _HolographicBrainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
-    final cy = size.height / 2 - 10;
-    final radius = math.min(size.width, size.height) * 0.32;
+    final cy = size.height / 2;
 
-    // Outer Target Rings
-    final ringPaint = Paint()
+    // Glowing Holographic Grid Rings
+    final gridPaint = Paint()
       ..color = AppColors.cyan.withOpacity(0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
-    canvas.drawCircle(Offset(cx, cy), radius * 1.25, ringPaint);
-    canvas.drawCircle(Offset(cx, cy), radius * 1.45, ringPaint..color = AppColors.cyan.withOpacity(0.08));
 
-    // Rotating Holographic Orbit Dots
-    final dotPaint = Paint()..style = PaintingStyle.fill;
-    for (int i = 0; i < 8; i++) {
-      final angle = time * 0.5 + i * (math.pi / 4);
-      final dx = cx + math.cos(angle) * (radius * 1.25);
-      final dy = cy + math.sin(angle) * (radius * 1.25);
-      dotPaint.color = i % 2 == 0 ? AppColors.cyan : AppColors.emerald;
-      canvas.drawCircle(Offset(dx, dy), 2.5, dotPaint);
+    for (int r = 30; r < 140; r += 24) {
+      canvas.drawCircle(Offset(cx, cy), r.toDouble(), gridPaint);
     }
 
-    // 3D Wireframe Brain Mesh
-    const rings = 12;
+    // 3D Wireframe Rotating Slices
+    for (int i = -6; i <= 6; i++) {
+      final yOffset = i * 18.0;
+      final radScale = math.cos((i / 7.0) * (math.pi / 2));
+      if (radScale <= 0) continue;
 
+      final rotAngle = time + (i * 0.15);
+      final rx = (85 * radScale) * math.cos(rotAngle).abs().clamp(0.4, 1.0);
+      final ry = (40 * radScale);
 
-    for (int r = 0; r < rings; r++) {
-      final ringNorm = (r / rings);
-      final ringR = radius * math.sin(ringNorm * math.pi);
-      final ringY = cy - radius * math.cos(ringNorm * math.pi) * 0.8;
-
-      final p = Path();
-      const points = 32;
-      for (int i = 0; i <= points; i++) {
-        final theta = (i / points) * 2 * math.pi;
-        // Morphing harmonic waves for biological organic brain shape
-        final sulci = math.sin(theta * 4 + time) * (ringR * 0.08) + math.cos(theta * 6) * (ringR * 0.04);
-        final px = cx + math.cos(theta + time * 0.2) * (ringR + sulci);
-        final py = ringY + math.sin(theta) * (ringR * 0.25);
-
-        if (i == 0) {
-          p.moveTo(px, py);
-        } else {
-          p.lineTo(px, py);
-        }
-      }
-      p.close();
-
-      final wirePaint = Paint()
-        ..color = AppColors.cyan.withOpacity(0.25 + ringNorm * 0.3)
+      final slicePaint = Paint()
+        ..color = Color.lerp(AppColors.cyan, AppColors.violet, (i + 6) / 12.0)!.withOpacity(0.4 + (radScale * 0.3))
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0;
+        ..strokeWidth = 1.2;
 
-      canvas.drawPath(p, wirePaint);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(cx, cy + yOffset), width: rx * 2, height: ry * 2),
+        slicePaint,
+      );
     }
 
-    // Central Glowing Neural Core
-    final coreGlow = Paint()
-      ..color = AppColors.cyan.withOpacity(0.3)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
-    canvas.drawCircle(Offset(cx, cy), 24, coreGlow);
+    // Core Glowing Ventricular Nodes
+    final corePaint = Paint()
+      ..color = AppColors.cyan.withOpacity(0.8)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawCircle(Offset(cx, cy), 16, corePaint);
   }
 
   @override

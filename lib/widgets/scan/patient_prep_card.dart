@@ -4,6 +4,7 @@ import '../../models/scan_simulation_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../services/audio_service.dart';
+import '../../services/localization_service.dart';
 import '../common/glass_panel.dart';
 import '../common/glowing_button.dart';
 
@@ -33,10 +34,13 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
   @override
   Widget build(BuildContext context) {
     final color = widget.modality.accentColor;
+    final isTh = LocalizationService().isThai;
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(isMobile ? 12 : 18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,15 +54,15 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'PATIENT BRIEFING & SAFETY PROTOCOL',
-                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10),
+                      'patient_intake_title'.tr,
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: isMobile ? 9 : 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${widget.patient.caseId} • ${widget.patient.patientInitials} (${widget.patient.age}Y, ${widget.patient.gender})',
-                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      style: AppTypography.titleMedium.copyWith(fontSize: isMobile ? 14 : 17),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -92,20 +96,20 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
             ),
             child: Row(
               children: [
-                Icon(Icons.medical_information_outlined, color: color, size: 18),
+                Icon(Icons.medical_information_outlined, color: color, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'CLINICAL INDICATION & EXAM',
+                        isTh ? 'ข้อบ่งชี้ทางคลินิกและโปรโตคอลการตรวจ' : 'CLINICAL INDICATION & EXAM PROTOCOL',
                         style: AppTypography.hudLabel.copyWith(color: AppColors.textMuted, fontSize: 8.5),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${widget.patient.examProtocol} — ${widget.patient.indication}',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 11),
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 11.5),
                       ),
                     ],
                   ),
@@ -117,7 +121,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
 
           // Interactive Safety Checklist
           Text(
-            'MANDATORY RADIOLOGIC SAFETY CHECKLIST',
+            'safety_checklist_header'.tr,
             style: AppTypography.hudLabel.copyWith(color: AppColors.textSecondary, fontSize: 9.5),
           ),
           const SizedBox(height: 8),
@@ -140,7 +144,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isChecked ? color.withOpacity(0.1) : AppColors.surface.withOpacity(0.5),
+                    color: isChecked ? color.withOpacity(0.12) : AppColors.surface.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isChecked ? color.withOpacity(0.8) : AppColors.cardGlassBorder,
@@ -178,7 +182,7 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
           Align(
             alignment: Alignment.centerRight,
             child: GlowingButton(
-              text: _allChecked ? 'PROCEED TO POSITIONING' : 'CHECK ALL & PROCEED',
+              text: _allChecked ? 'prep_ready_btn'.tr : (isTh ? 'ยืนยันทุกข้อและเริ่มจัดตำแหน่ง' : 'CHECK ALL & PROCEED'),
               icon: Icons.arrow_forward_rounded,
               primaryColor: color,
               isSecondary: !_allChecked,
@@ -186,7 +190,6 @@ class _PatientPrepCardState extends State<PatientPrepCard> {
                 if (_allChecked) {
                   widget.onPrepCompleted();
                 } else {
-                  // Auto-check all items for smooth demo experience
                   setState(() {
                     for (int i = 0; i < widget.modality.safetyChecklist.length; i++) {
                       _checkedItems[i] = true;

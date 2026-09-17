@@ -4,9 +4,9 @@ import '../data/technician_cases_data.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../services/app_state_service.dart';
+import '../services/localization_service.dart';
 import '../services/audio_service.dart';
 import '../widgets/common/hud_header.dart';
-import '../widgets/common/glass_panel.dart';
 import '../widgets/common/glowing_button.dart';
 import '../widgets/technician/workstation_hud.dart';
 import '../widgets/technician/technician_decision_card.dart';
@@ -24,6 +24,7 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = AppStateService();
+    final isTh = LocalizationService().isThai;
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 650;
 
@@ -55,9 +56,9 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                 children: [
                   // Header
                   HUDHeader(
-                    title: 'TECHNICIAN WORKSTATION SIMULATOR',
-                    subtitle: 'Radiologic Technologist Quality Assurance, Artifact Recognition & Crisis Governance',
-                    tag: 'RADTECH CONSOLE',
+                    title: 'radtech_title'.tr,
+                    subtitle: 'radtech_subtitle'.tr,
+                    tag: isTh ? 'คอนโซลนักรังสีเทคนิค' : 'RADTECH CONSOLE',
                     accentColor: AppColors.cyan,
                     trailing: Wrap(
                       spacing: 8,
@@ -75,7 +76,7 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'SCORE: $score PTS',
+                                '${'score_label'.tr}: $score PTS',
                                 style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 10.5),
                               ),
                               if (streak > 1) ...[
@@ -96,7 +97,7 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                           ),
                         ),
                         GlowingButton(
-                          text: isMobile ? 'RANDOM' : 'RANDOM CASE (สุ่มเคส)',
+                          text: isMobile ? (isTh ? 'สุ่ม' : 'RANDOM') : 'random_scenario'.tr,
                           icon: Icons.shuffle_rounded,
                           primaryColor: AppColors.cyan,
                           secondaryColor: AppColors.neonTeal,
@@ -118,10 +119,10 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildFilterChip('ALL (${TechnicianCasesData.cases.length})', null, AppColors.cyan),
-                              _buildFilterChip('MRI SAFETY & PHYSICS', ModalityType.mri, AppColors.cyan),
-                              _buildFilterChip('CT PROTOCOLS', ModalityType.ct, AppColors.emerald),
-                              _buildFilterChip('DIGITAL X-RAY & C-ARM', ModalityType.xray, AppColors.violet),
+                              _buildFilterChip('${'all_modalities'.tr} (${TechnicianCasesData.cases.length})', null, AppColors.cyan),
+                              _buildFilterChip(isTh ? 'MRI ความปลอดภัยและฟิสิกส์' : 'MRI SAFETY & PHYSICS', ModalityType.mri, AppColors.cyan),
+                              _buildFilterChip(isTh ? 'CT โปรโตคอล' : 'CT PROTOCOLS', ModalityType.ct, AppColors.emerald),
+                              _buildFilterChip(isTh ? 'เอกซเรย์ดิจิทัล' : 'DIGITAL X-RAY', ModalityType.xray, AppColors.violet),
                             ],
                           ),
                         ),
@@ -150,17 +151,19 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                                 ? const Icon(Icons.check_circle_rounded, size: 15, color: AppColors.emerald)
                                 : null,
                             label: Text(
-                              '${c.caseCode} • ${c.modality.name.toUpperCase()}',
+                              '${c.caseCode} • ${c.title}',
                               style: AppTypography.hudLabel.copyWith(
-                                color: isSelected ? AppColors.background : AppColors.cyan,
+                                color: isSelected ? AppColors.background : (hasAnswered ? AppColors.emerald : AppColors.textPrimary),
                                 fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                               ),
                             ),
                             selected: isSelected,
                             selectedColor: AppColors.cyan,
                             backgroundColor: AppColors.surface,
-                            side: BorderSide(color: isSelected ? AppColors.cyan : AppColors.cardGlassBorder),
+                            side: BorderSide(
+                              color: isSelected ? AppColors.cyan : (hasAnswered ? AppColors.emerald.withOpacity(0.4) : AppColors.cardGlassBorder),
+                            ),
                             onSelected: (selected) {
                               if (selected) {
                                 appState.setActiveTechnicianCase(c);
@@ -173,14 +176,14 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Main Workstation & Decision Views
+                  // Main Interactive Workstation View
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
                           WorkstationHUD(
                             techCase: activeCase,
-                            currentScore: score,
+                            isAnswered: selectedChoiceId != null,
                           ),
                           const SizedBox(height: 14),
                           TechnicianDecisionCard(
@@ -189,50 +192,6 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
                             onOptionChosen: (optionId, scoreDelta) {
                               appState.recordTechnicianDecision(activeCase.id, optionId, scoreDelta);
                             },
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Competencies Tested Grid
-                          GlassPanel(
-                            padding: const EdgeInsets.all(16),
-                            borderRadius: 12,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'RADTECH PROFESSIONAL COMPETENCIES TESTED',
-                                      style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted),
-                                    ),
-                                    Text(
-                                      '${activeCase.radTechCompetenciesTested.length} OBJECTIVES',
-                                      style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.cyan),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 6,
-                                  children: activeCase.radTechCompetenciesTested.map((comp) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surfaceHighlight,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: AppColors.cardGlassBorder),
-                                      ),
-                                      child: Text(
-                                        comp,
-                                        style: AppTypography.bodySmall.copyWith(fontSize: 10, color: AppColors.textSecondary),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
                           ),
                           const SizedBox(height: 20),
                         ],
@@ -252,13 +211,13 @@ class _TechnicianModeScreenState extends State<TechnicianModeScreen> {
     final isSelected = _modalityFilter == modality;
 
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         label: Text(
           label,
           style: AppTypography.hudLabel.copyWith(
             color: isSelected ? AppColors.background : accentColor,
-            fontSize: 9,
+            fontSize: 9.5,
             fontWeight: FontWeight.w700,
           ),
         ),

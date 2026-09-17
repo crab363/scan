@@ -5,6 +5,7 @@ import '../data/modalities_data.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../services/app_state_service.dart';
+import '../services/localization_service.dart';
 import '../services/audio_service.dart';
 import '../widgets/common/hud_header.dart';
 import '../widgets/common/glass_panel.dart';
@@ -28,6 +29,7 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
   ModalityType _selectedModality = ModalityType.mri;
   ScanStep _currentStep = ScanStep.patient;
   bool _isReconstructing = false;
+  bool _showPhysicsDrawer = false;
 
   final PatientCaseProfile _demoPatient = const PatientCaseProfile(
     caseId: 'CASE 024',
@@ -58,6 +60,7 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
   Widget build(BuildContext context) {
     final modality = _currentModalityInfo;
     final color = modality.accentColor;
+    final isTh = LocalizationService().isThai;
     final size = MediaQuery.of(context).size;
     final isMobile = size.width < 600;
 
@@ -74,20 +77,40 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
             children: [
               // HUD Header
               HUDHeader(
-                title: 'SCAN SIMULATION LAB',
-                subtitle: '5-Stage Clinical Radiologic Acquisition & Reconstruction Workflow',
+                title: 'scan_lab_title'.tr,
+                subtitle: 'scan_lab_subtitle'.tr,
                 tag: modality.name,
                 accentColor: color,
-                trailing: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _currentStep = ScanStep.patient;
-                      _isReconstructing = false;
-                    });
-                    SoundService().playSound(SoundEffect.uiClick);
-                  },
-                  icon: const Icon(Icons.restart_alt_rounded, size: 16, color: AppColors.cyan),
-                  label: Text('RESET LAB', style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 9)),
+                trailing: Wrap(
+                  spacing: 6,
+                  children: [
+                    // Physics & Knowledge Button
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() => _showPhysicsDrawer = !_showPhysicsDrawer);
+                        SoundService().playSound(SoundEffect.uiClick);
+                      },
+                      icon: Icon(Icons.school_rounded, size: 16, color: _showPhysicsDrawer ? AppColors.amber : AppColors.cyan),
+                      label: Text(
+                        isTh ? 'ความรู้ฟิสิกส์' : 'PHYSICS',
+                        style: AppTypography.hudLabel.copyWith(
+                          color: _showPhysicsDrawer ? AppColors.amber : AppColors.cyan,
+                          fontSize: 9.5,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _currentStep = ScanStep.patient;
+                          _isReconstructing = false;
+                        });
+                        SoundService().playSound(SoundEffect.uiClick);
+                      },
+                      icon: const Icon(Icons.restart_alt_rounded, size: 16, color: AppColors.cyan),
+                      label: Text('reset_lab'.tr, style: AppTypography.hudLabel.copyWith(color: AppColors.cyan, fontSize: 9)),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 10),
@@ -105,7 +128,13 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
               ),
               const SizedBox(height: 10),
 
-              // 5-Step Visual Stepper Bar (Horizontally scrollable for mobile)
+              // Optional Educational Physics Drawer
+              if (_showPhysicsDrawer) ...[
+                _buildPhysicsInfoDrawer(modality, isTh),
+                const SizedBox(height: 10),
+              ],
+
+              // 5-Step Visual Stepper Bar
               _buildStepperBar(color),
               const SizedBox(height: 12),
 
@@ -122,13 +151,67 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
     );
   }
 
+  Widget _buildPhysicsInfoDrawer(ImagingModality modality, bool isTh) {
+    return GlassPanel(
+      borderColor: AppColors.amber.withOpacity(0.5),
+      padding: const EdgeInsets.all(14),
+      borderRadius: 12,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology_alt_rounded, color: AppColors.amber, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '${modality.fullName} — ${'physics_title'.tr}',
+                style: AppTypography.titleMedium.copyWith(color: AppColors.amber, fontSize: 13.5),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            modality.physicsPrinciple,
+            style: AppTypography.bodySmall.copyWith(fontSize: 11, color: AppColors.textPrimary, height: 1.45),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(6)),
+                  child: Text(
+                    '${'radiation_dose'.tr}: ${modality.radiationLevel}',
+                    style: AppTypography.telemetryCode.copyWith(fontSize: 9.5, color: AppColors.cyan),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(6)),
+                  child: Text(
+                    '${'acquisition_time'.tr}: ${modality.acquisitionSpeed}',
+                    style: AppTypography.telemetryCode.copyWith(fontSize: 9.5, color: AppColors.emerald),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStepperBar(Color color) {
     final steps = [
-      {'step': ScanStep.patient, 'label': '1. PATIENT'},
-      {'step': ScanStep.preparation, 'label': '2. PREP'},
-      {'step': ScanStep.positioning, 'label': '3. POSITION'},
-      {'step': ScanStep.scan, 'label': '4. SCAN'},
-      {'step': ScanStep.image, 'label': '5. IMAGE'},
+      {'step': ScanStep.patient, 'label': 'step_1_patient'.tr},
+      {'step': ScanStep.preparation, 'label': 'step_2_prep'.tr},
+      {'step': ScanStep.positioning, 'label': 'step_3_position'.tr},
+      {'step': ScanStep.scan, 'label': 'step_4_scan'.tr},
+      {'step': ScanStep.image, 'label': 'step_5_image'.tr},
     ];
 
     return GlassPanel(
@@ -172,7 +255,7 @@ class _ScanSimulationScreenState extends State<ScanSimulationScreen> {
                         label,
                         style: AppTypography.hudLabel.copyWith(
                           color: isCurrent ? Colors.white : (isPast ? AppColors.textPrimary : AppColors.textMuted),
-                          fontSize: 8.5,
+                          fontSize: 9.0,
                           fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w500,
                         ),
                       ),

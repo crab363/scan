@@ -4,6 +4,7 @@ import '../data/anatomy_data.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../services/app_state_service.dart';
+import '../services/localization_service.dart';
 import '../services/audio_service.dart';
 import '../widgets/common/glass_panel.dart';
 import '../widgets/common/hud_header.dart';
@@ -36,6 +37,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 800;
+    final isTh = LocalizationService().isThai;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -47,13 +49,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
             children: [
               // Header
               HUDHeader(
-                title: 'HUMAN ANATOMICAL MAP',
-                subtitle: 'Select anatomical region to inspect imaging pathways and clinical protocols',
-                tag: 'EXPLORE HUB',
+                title: isTh ? 'แผนที่กายวิภาคศาสตร์มนุษย์' : 'HUMAN ANATOMICAL MAP',
+                subtitle: isTh ? 'เลือกโซนอวัยวะเพื่อตรวจสอบแนวทางการถ่ายภาพรังสีและโปรโตคอลการตรวจ' : 'Select anatomical region to inspect imaging pathways and clinical protocols',
+                tag: isTh ? 'ศูนย์สำรวจ' : 'EXPLORE HUB',
                 accentColor: _selectedZone.accentColor,
                 trailing: _selectedZone.id == 'brain'
                     ? GlowingButton(
-                        text: 'OPEN 3D BRAIN EXPLORER',
+                        text: isTh ? 'เปิด 3D สมอง' : 'OPEN 3D BRAIN EXPLORER',
                         icon: Icons.biotech_rounded,
                         primaryColor: AppColors.cyan,
                         onPressed: _openBrainExplorer,
@@ -86,7 +88,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           // Right: Detailed Anatomical Zone Inspector
                           Expanded(
                             flex: 5,
-                            child: _buildZoneDetailPanel(),
+                            child: _buildZoneDetailPanel(isTh),
                           ),
                         ],
                       )
@@ -108,7 +110,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            _buildZoneDetailPanel(),
+                            _buildZoneDetailPanel(isTh),
                           ],
                         ),
                       ),
@@ -120,7 +122,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildZoneDetailPanel() {
+  Widget _buildZoneDetailPanel(bool isTh) {
     final color = _selectedZone.accentColor;
 
     return GlassPanel(
@@ -143,7 +145,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   const SizedBox(height: 2),
                   Text(
                     _selectedZone.name,
-                    style: AppTypography.titleLarge.copyWith(fontSize: 22, color: Colors.white),
+                    style: AppTypography.titleLarge.copyWith(fontSize: 20, color: Colors.white),
                   ),
                 ],
               ),
@@ -155,7 +157,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   border: Border.all(color: color),
                 ),
                 child: Text(
-                  'ACTIVE REGION',
+                  isTh ? 'โซนที่เลือก' : 'ACTIVE REGION',
                   style: AppTypography.hudLabel.copyWith(color: color, fontSize: 9),
                 ),
               ),
@@ -169,7 +171,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
           const SizedBox(height: 16),
 
           // Primary Modalities Used
-          Text('PRIMARY IMAGING MODALITIES', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
+          Text(
+            isTh ? 'เครื่องมือรังสีวินิจฉัยหลักที่ใช้' : 'PRIMARY IMAGING MODALITIES',
+            style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -192,7 +197,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
           const SizedBox(height: 16),
 
           // Common Exams
-          Text('COMMON RADIOLOGIC EXAMS', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted)),
+          Text(
+            isTh ? 'การตรวจทางรังสีที่พบบ่อย' : 'COMMON RADIOLOGIC EXAMS',
+            style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 6),
           ..._selectedZone.commonExams.map((exam) {
             return Padding(
@@ -204,7 +212,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   Expanded(
                     child: Text(
                       exam,
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11.5),
                     ),
                   ),
                 ],
@@ -226,15 +234,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber, size: 16),
+                    const Icon(Icons.lightbulb_outline_rounded, color: AppColors.amber, size: 16),
                     const SizedBox(width: 6),
-                    Text('CLINICAL RADIOLOGY PEARL', style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.amber)),
+                    Text(
+                      isTh ? 'ข้อคิดทางรังสีคลินิก (Clinical Pearl)' : 'CLINICAL RADIOLOGY PEARL',
+                      style: AppTypography.hudLabel.copyWith(fontSize: 9, color: AppColors.amber),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _selectedZone.clinicalPearls,
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontSize: 11),
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontSize: 11, height: 1.4),
                 ),
               ],
             ),
@@ -255,7 +266,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
           // Action Buttons
           Wrap(
@@ -265,18 +276,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
             children: [
               if (_selectedZone.id == 'brain')
                 GlowingButton(
-                  text: 'ENTER 3D BRAIN EXPLORER',
+                  text: isTh ? 'เปิด 3D สมอง' : 'ENTER 3D BRAIN EXPLORER',
                   icon: Icons.blur_on_rounded,
                   primaryColor: AppColors.cyan,
                   onPressed: _openBrainExplorer,
                 ),
               GlowingButton(
-                text: 'START SCAN SIMULATION',
+                text: isTh ? 'เริ่มจำลองการสแกน' : 'START SCAN SIMULATION',
                 icon: Icons.play_arrow_rounded,
                 primaryColor: color,
                 isSecondary: true,
                 onPressed: () {
-                  AppStateService().setNavigationIndex(2); // Go to scan tab
+                  AppStateService().setNavigationIndex(2);
                 },
               ),
             ],

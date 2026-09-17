@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 import '../../models/technician_case.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../services/localization_service.dart';
 import '../common/glass_panel.dart';
 
 class WorkstationHUD extends StatelessWidget {
   final TechnicianCase techCase;
+  final bool isAnswered;
   final int currentScore;
 
   const WorkstationHUD({
     super.key,
     required this.techCase,
-    required this.currentScore,
+    this.isAnswered = false,
+    this.currentScore = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isTh = LocalizationService().isThai;
+
     return GlassPanel(
       borderColor: AppColors.cyan.withOpacity(0.4),
       padding: const EdgeInsets.all(16),
@@ -47,7 +52,7 @@ class WorkstationHUD extends StatelessWidget {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'RADTECH CONSOLE • WORKSTATION 04',
+                        isTh ? 'คอนโซลควบคุมรังสีเทคนิค • สถานี 04' : 'RADTECH CONSOLE • WORKSTATION 04',
                         style: AppTypography.hudLabel.copyWith(fontSize: 10.5),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -59,15 +64,15 @@ class WorkstationHUD extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.emerald.withOpacity(0.15),
+                  color: isAnswered ? AppColors.emerald.withOpacity(0.15) : AppColors.amber.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.emerald),
+                  border: Border.all(color: isAnswered ? AppColors.emerald : AppColors.amber),
                 ),
                 child: Text(
-                  'SCORE: $currentScore PTS',
+                  isAnswered ? (isTh ? 'ประเมินแล้ว' : 'EVALUATED') : (isTh ? 'รอดำเนินการ' : 'PENDING DECISION'),
                   style: AppTypography.hudLabel.copyWith(
-                    color: AppColors.emerald,
-                    fontSize: 10,
+                    color: isAnswered ? AppColors.emerald : AppColors.amber,
+                    fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -92,7 +97,7 @@ class WorkstationHUD extends StatelessWidget {
                     Expanded(
                       flex: 3,
                       child: _buildField(
-                        'PATIENT',
+                        isTh ? 'ผู้ป่วย' : 'PATIENT',
                         '${techCase.caseCode} (${techCase.patientAge}Y, ${techCase.patientGender})',
                       ),
                     ),
@@ -100,7 +105,7 @@ class WorkstationHUD extends StatelessWidget {
                     Expanded(
                       flex: 4,
                       child: _buildField(
-                        'EXAM',
+                        isTh ? 'การตรวจ' : 'EXAM',
                         techCase.examName,
                       ),
                     ),
@@ -108,7 +113,7 @@ class WorkstationHUD extends StatelessWidget {
                     Expanded(
                       flex: 4,
                       child: _buildField(
-                        'POSITIONING',
+                        isTh ? 'การจัดท่า' : 'POSITIONING',
                         techCase.positioningStatus.split(';').first,
                       ),
                     ),
@@ -123,7 +128,7 @@ class WorkstationHUD extends StatelessWidget {
                     Expanded(
                       flex: 3,
                       child: _buildFieldWithBadge(
-                        'IMAGE QUALITY',
+                        isTh ? 'คุณภาพภาพ' : 'IMAGE QUALITY',
                         '${techCase.initialImageQuality.toInt()}%',
                         AppColors.amber,
                       ),
@@ -132,7 +137,7 @@ class WorkstationHUD extends StatelessWidget {
                     Expanded(
                       flex: 5,
                       child: _buildFieldWithBadge(
-                        'ARTIFACT',
+                        'artifact_detected'.tr,
                         techCase.detectedArtifact,
                         AppColors.alertRed,
                       ),
@@ -141,7 +146,7 @@ class WorkstationHUD extends StatelessWidget {
                     Expanded(
                       flex: 3,
                       child: _buildField(
-                        'SYSTEM',
+                        isTh ? 'ระบบ' : 'SYSTEM',
                         'PACS OK',
                       ),
                     ),
@@ -170,7 +175,7 @@ class WorkstationHUD extends StatelessWidget {
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
+                      fontSize: 11.5,
                     ),
                   ),
                 ),

@@ -5,6 +5,7 @@ import '../../models/scan_simulation_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../services/audio_service.dart';
+import '../../services/localization_service.dart';
 import '../common/glass_panel.dart';
 import '../common/glowing_button.dart';
 import '../common/waveform_visualizer.dart';
@@ -33,10 +34,11 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
   Timer? _scanTimer;
 
   // Live Metrics
-  double _qualityScore = 82.0;
-  String _artifactStatus = 'MOTION ARTIFACT DETECTED';
+  double _qualityScore = 96.0;
+  String _artifactStatus = 'NONE (NOMINAL)';
   int _currentSlice = 0;
   final int _totalSlices = 28;
+  bool _simulateMotion = false;
 
   @override
   void initState() {
@@ -67,16 +69,16 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
     }
 
     _scanTimer?.cancel();
-    _scanTimer = Timer.periodic(const Duration(milliseconds: 120), (timer) {
+    _scanTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted) return;
 
       setState(() {
-        _scanProgress += 0.025;
+        _scanProgress += 0.035;
         _currentSlice = (_scanProgress * _totalSlices).toInt().clamp(0, _totalSlices);
 
-        if (_scanProgress >= 0.5 && _scanProgress <= 0.6) {
-          _artifactStatus = 'PHASE MOTION DETECTED (SLICE 14)';
-          _qualityScore = 82.0;
+        if (_simulateMotion && _scanProgress >= 0.4 && _scanProgress <= 0.7) {
+          _artifactStatus = 'PHASE MOTION ARTIFACT DETECTED';
+          _qualityScore = 74.0;
         }
 
         if (_scanProgress >= 1.0) {
@@ -86,7 +88,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
 
           final metrics = ScanMetrics(
             imageQuality: _qualityScore,
-            signalToNoiseRatio: 'SNR: 18.4 dB',
+            signalToNoiseRatio: 'SNR: 24.8 dB',
             artifactStatus: _artifactStatus,
             currentSliceIndex: _totalSlices.toDouble(),
             totalSlices: _totalSlices,
@@ -104,10 +106,13 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
   @override
   Widget build(BuildContext context) {
     final color = widget.modality.accentColor;
+    final isTh = LocalizationService().isThai;
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
 
     return GlassPanel(
       borderColor: color.withOpacity(0.4),
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(isMobile ? 12 : 18),
       showCornerBrackets: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,15 +126,15 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'REAL-TIME RF PULSE & GRADIENT ACQUISITION',
-                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: 10),
+                      'acquisition_title'.tr,
+                      style: AppTypography.hudLabel.copyWith(color: color, fontSize: isMobile ? 9 : 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${widget.patient.caseId} • ${_activeSequence.name}',
-                      style: AppTypography.titleMedium.copyWith(fontSize: 16),
+                      style: AppTypography.titleMedium.copyWith(fontSize: isMobile ? 14 : 17),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -157,7 +162,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      _isScanning ? 'ACQUIRING K-SPACE' : 'SCANNER READY',
+                      _isScanning ? 'acquiring_kspace'.tr : 'scanner_ready'.tr,
                       style: AppTypography.hudLabel.copyWith(
                         color: _isScanning ? AppColors.emerald : color,
                         fontSize: 8.5,
@@ -223,15 +228,15 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                   height: 140,
                   primaryColor: color,
                   secondaryColor: AppColors.emerald,
-                  frequency: _isScanning ? 6.5 : 2.0,
-                  amplitude: _isScanning ? 35.0 : 8.0,
+                  frequency: _isScanning ? 7.0 : 2.0,
+                  amplitude: _isScanning ? 36.0 : 8.0,
                   isScanningActive: _isScanning,
                 ),
                 if (_isScanning)
                   Positioned.fill(
                     child: AnimatedScanLine(
                       color: color,
-                      duration: const Duration(milliseconds: 1400),
+                      duration: const Duration(milliseconds: 1200),
                     ),
                   ),
                 // Telemetry Overlay
@@ -256,7 +261,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
           ),
           const SizedBox(height: 12),
 
-          // Live Telemetry Grid (Responsive)
+          // Live Telemetry Grid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
@@ -266,10 +271,10 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
             ),
             child: Row(
               children: [
-                Expanded(child: _buildTelemetryItem('QUALITY', '${_qualityScore.toInt()}%', AppColors.cyan)),
-                Expanded(child: _buildTelemetryItem('ARTIFACT', 'MOTION', AppColors.amber)),
-                Expanded(child: _buildTelemetryItem('FIELD', '3.0T', AppColors.emerald)),
-                Expanded(child: _buildTelemetryItem('RF POWER', '450 W', AppColors.violet)),
+                Expanded(child: _buildTelemetryItem(isTh ? 'คุณภาพภาพ' : 'QUALITY', '${_qualityScore.toInt()}%', AppColors.cyan)),
+                Expanded(child: _buildTelemetryItem(isTh ? 'สัญญาณรบกวน' : 'ARTIFACT', _simulateMotion ? 'MOTION' : 'CLEAN', _simulateMotion ? AppColors.amber : AppColors.emerald)),
+                Expanded(child: _buildTelemetryItem(isTh ? 'สนามแม่เหล็ก' : 'FIELD', '3.0T', AppColors.emerald)),
+                Expanded(child: _buildTelemetryItem(isTh ? 'กำลัง RF' : 'RF POWER', '450 W', AppColors.violet)),
               ],
             ),
           ),
@@ -282,7 +287,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('K-SPACE ENCODING PROGRESS', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
+                  Text(isTh ? 'ความคืบหน้าการบันทึก K-SPACE' : 'K-SPACE ENCODING PROGRESS', style: AppTypography.hudLabel.copyWith(fontSize: 8.5, color: AppColors.textMuted)),
                   Text('${(_scanProgress * 100).toInt()}%', style: AppTypography.hudValue.copyWith(fontSize: 11, color: color)),
                 ],
               ),
@@ -298,21 +303,41 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Controls (Responsive Wrap)
+          // Controls Row
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 12,
             runSpacing: 10,
             children: [
-              Text(
-                'Simulated Sequence: Educational Mode',
-                style: AppTypography.bodySmall.copyWith(fontSize: 9.5, color: AppColors.textMuted),
+              InkWell(
+                onTap: () {
+                  setState(() => _simulateMotion = !_simulateMotion);
+                  SoundService().playSound(SoundEffect.uiClick);
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _simulateMotion ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                      size: 16,
+                      color: _simulateMotion ? AppColors.amber : AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'motion_simulation'.tr,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontSize: 10.5,
+                        color: _simulateMotion ? AppColors.amber : AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               GlowingButton(
-                text: _isScanning ? 'ACQUIRING...' : (_scanProgress >= 1.0 ? 'VIEW RECONSTRUCTED IMAGE' : 'START SCAN'),
+                text: _isScanning ? 'acquiring_kspace'.tr : (_scanProgress >= 1.0 ? 'view_recon_btn'.tr : 'start_scan_btn'.tr),
                 icon: _isScanning ? Icons.sync_rounded : Icons.play_arrow_rounded,
                 isLoading: _isScanning,
                 primaryColor: color,
@@ -320,7 +345,7 @@ class _ScanAcquisitionHUDState extends State<ScanAcquisitionHUD> with SingleTick
                   if (_scanProgress >= 1.0) {
                     final metrics = ScanMetrics(
                       imageQuality: _qualityScore,
-                      signalToNoiseRatio: 'SNR: 18.4 dB',
+                      signalToNoiseRatio: 'SNR: 24.8 dB',
                       artifactStatus: _artifactStatus,
                       currentSliceIndex: _totalSlices.toDouble(),
                       totalSlices: _totalSlices,
